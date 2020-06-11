@@ -18,6 +18,9 @@ import time
 
 def run_framework_single_record(record_ID = 100): 
   
+  # Set parameters
+  params = {}
+  
   # Get signals and annotations from database
   ECG, time, annotations = database.openRecord(record_ID = record_ID, showFigures = False, verbose = True)
   

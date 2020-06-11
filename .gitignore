@@ -1,3 +1,4 @@
 /python/env/
 /python/mitdb/
+/python/c_lib/build/
 *.pyc

@@ -7,7 +7,15 @@ from scipy.interpolate import interp1d
 import numpy as np
 import matplotlib.pyplot as plt
 
-#
+# Analog front-end signal transfer function model with non-idealities
+# Inputs:
+# - ECG: vector with single-lead analog signal [mV] from database
+# - time: vector with corresponding time (same size as ECG)
+# - time_dig: optional time vector for sampling (None if unused)
+# - parameters
+# Outputs:
+# - ECG_dig: vector of digitized ECG samples
+# - time_dig: sampling time vector (same as input time_dig if provided)
 def analogFrontEndModel(ECG,time, time_dig = None, gain=60, vDC=0.6, Fs=200, N_bits=16, vref=1.2, showFigures = False):
   
   # Amplification
@@ -20,7 +28,7 @@ def analogFrontEndModel(ECG,time, time_dig = None, gain=60, vDC=0.6, Fs=200, N_b
   N_in = len(time)
   T_in = time[1]-time[0]
   N = int(N_in*Fs*T_in)
-  f_interp = interp1d(time, ecg_amp,kind = 'linear')
+  f_interp = interp1d(time, ECG,kind = 'linear')
   if time_dig is None:
     time_dig = np.linspace(0,(N-1)/Fs,N)
   ECG_dig = ((2**N_bits)*f_interp(time_dig)/vref).astype(np.int32)
