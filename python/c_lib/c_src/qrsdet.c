@@ -72,7 +72,6 @@ Returns:
 
 // External Prototypes.
 
-int QRSFilter(int datum, int init) ;
 int deriv1( int x0, int init ) ;
 
 // Local Prototypes.
@@ -119,8 +118,15 @@ int QRSDet( int datum, int fdatum, int init )
 			noise[i] = 0 ;	/* Initialize noise buffer */
 			rrbuf[i] = MS1000 ;/* and R-to-R interval buffer. */
 			}
-
-		qpkcnt = maxder = lastmax = count = sbpeak = 0 ;
+    #ifdef SKIP_INIT
+    qpkcnt = 8;
+    qmean = 10534; 
+    nmean = 0;
+    det_thresh = thresh(qmean,nmean) ;
+    #else
+    qpkcnt = 0;
+    #endif
+		maxder = lastmax = count = sbpeak = 0 ;
 		initBlank = initMax = preBlankCnt = DDPtr = 0 ;
 		sbcount = MS1500 ;
 		Peak(0,1) ;
@@ -406,7 +412,11 @@ int thresh(int qmean, int nmean)
 
 int BLSCheck(int *dBuf,int dbPtr,int *maxder)
 	{
-	int max, min, maxt, mint, t, x ;
+	int max=-1000000000;
+  int min=1000000000;
+  int maxt=0;
+  int mint=0;
+  int t, x ;
 	max = min = 0 ;
 
 	for(t = 0; t < MS220; ++t)

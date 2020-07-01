@@ -11,7 +11,7 @@ def systemModel(ECG,time, params = {}, verbose = False, showFigures = False):
   # Run AFE model
   # Input is the signal from the database with time vector
   # Output is the digitized signal with time vector after AFE non-idealities
-  ECG_dig0, time_dig = AFEmodel.analogFrontEndModel(ECG[0],time, showFigures = True)
+  ECG_dig0, time_dig = AFEmodel.analogFrontEndModel(ECG[0],time, showFigures = False)
   ECG_dig1, _ = AFEmodel.analogFrontEndModel(ECG[1],time, time_dig = time_dig, showFigures = showFigures)
   
   ECG_dig = [ECG_dig0,ECG_dig1]
@@ -19,7 +19,7 @@ def systemModel(ECG,time, params = {}, verbose = False, showFigures = False):
   # Run DBE model
   # Input is the digitized signal with time vector
   # Output is the label of detected beats with corresponding time 
-  labels, time_det = DBEmodel.digitalBackEndModel(ECG_dig,time_dig, Fs=200, showFigures = True)
+  labels, time_det = DBEmodel.digitalBackEndModel(ECG_dig,time_dig, Fs=200, showFigures = False)
   print(time_det)
   
   power = 0

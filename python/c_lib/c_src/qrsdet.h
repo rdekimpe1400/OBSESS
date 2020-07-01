@@ -22,6 +22,10 @@ MA 02143 USA).  For updates to this software, please visit our website
    	qrsfilt().
 *****************************************************************************/
 
+#include <stdint.h>
+
+//#define SKIP_INIT
+
 #define SAMPLE_RATE	200	/* Sample rate in Hz. */
 #define MS_PER_SAMPLE	5
 #define MS10	2
@@ -52,6 +56,9 @@ MA 02143 USA).  For updates to this software, please visit our website
 #define DER_DELAY	36 + FILTER_DELAY
 
 #define ECG_BUFFER_LENGTH 400
+
+int QRSDet( int datum, int fdatum, int init );
+int QRSFilter(int datum,int init,int16_t* datum_filt);
 
 //#define SAMPLE_RATE	200	/* Sample rate in Hz. */
 //#define MS_PER_SAMPLE	( (double) 1000/ (double) SAMPLE_RATE)

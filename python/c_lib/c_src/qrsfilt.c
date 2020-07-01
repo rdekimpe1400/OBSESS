@@ -36,6 +36,7 @@ MA 02143 USA).  For updates to this software, please visit our website
 *******************************************************************************/
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include "qrsdet.h"
 
 // Local Prototypes.
@@ -58,7 +59,7 @@ int mvwint(int datum, int init) ;
 *	The filter buffers and static variables are reset if a value other than
 *	0 is passed to QRSFilter through init.
 *******************************************************************************/
-int QRSFilter(int datum,int init)
+int QRSFilter(int datum,int init, int16_t* datum_filt)
 	{
 	int fdatum ;
 	if(init)
@@ -72,6 +73,7 @@ int QRSFilter(int datum,int init)
   
 	fdatum = lpfilt( datum, 0 ) ;		// Low pass filter data.
 	fdatum = hpfilt( fdatum, 0 ) ;	// High pass filter data.
+  *datum_filt = fdatum;
 	fdatum = deriv2( fdatum, 0 ) ;	// Take the derivative.
 	if(fdatum<0){ // Take the absolute value.
 		fdatum = -fdatum;

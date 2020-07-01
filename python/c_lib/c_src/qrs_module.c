@@ -1,8 +1,7 @@
 
 #include <Python.h>
-
-int QRSDet( int datum, int fdatum, int init );
-int QRSFilter(int datum,int init);
+#include <stdint.h>
+#include "qrsdet.h"
 
 // QRS detection function
 static PyObject* detect(PyObject* self, PyObject* args)
@@ -23,11 +22,12 @@ static PyObject* detect(PyObject* self, PyObject* args)
 static PyObject* filter(PyObject* self, PyObject* args)
 {
     int data;
+    uint32_t dummy;
     
     if (!PyArg_ParseTuple(args, "i", &data))
       return NULL;
     
-    data=QRSFilter(data, 0 );
+    data=QRSFilter(data, 0 , &dummy);
     
     return PyLong_FromLong(data);
 }
@@ -35,8 +35,9 @@ static PyObject* filter(PyObject* self, PyObject* args)
 // Initialization of filtering functions
 static PyObject* init(PyObject* self, PyObject* args)
 {
+    uint32_t dummy;
     QRSDet( 0, 0, 1 );
-    QRSFilter( 0, 1 );
+    QRSFilter( 0, 1,&dummy );
     return Py_None;
 }
 
@@ -51,16 +52,16 @@ static PyMethodDef myMethods[] = {
 };
 
 // Our Module Definition struct
-static struct PyModuleDef ECGlib = {
+static struct PyModuleDef QRSlib = {
     PyModuleDef_HEAD_INIT,
-    "ECGlib",
-    "ECG signal processing",
+    "QRSlib",
+    "QRS detection",
     -1,
     myMethods
 };
 
 // Initializes our module using our above struct
-PyMODINIT_FUNC PyInit_ECGlib(void)
+PyMODINIT_FUNC PyInit_QRSlib(void)
 {
-    return PyModule_Create(&ECGlib);
+    return PyModule_Create(&QRSlib);
 }
