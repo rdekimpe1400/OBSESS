@@ -5,7 +5,7 @@
 #include "ecg.h" 
 #include "feature_extract.h" 
 
-PyObject *Create_Output_Dict(int16_t* features, int length, int delay)
+PyObject *Create_Output_Dict(int16_t* features, int length, int delay, int class)
   { 
     PyObject *features_list, *item, *output;
     int i;
@@ -17,6 +17,7 @@ PyObject *Create_Output_Dict(int16_t* features, int length, int delay)
     output = PyDict_New();
     PyDict_SetItemString(output, "features", features_list);
     PyDict_SetItemString(output, "delay", PyLong_FromLong(delay));
+    PyDict_SetItemString(output, "class", PyLong_FromLong(class));
     return output;
   }
   
@@ -24,12 +25,13 @@ PyObject *Create_Output_Dict(int16_t* features, int length, int delay)
 static PyObject* process_sample(PyObject* self, PyObject* args)
 {
     int sample;
+    int delay;
     int output;
     
     if (!PyArg_ParseTuple(args, "i", &sample))
       return NULL;
     
-    ECG_wrapper(sample,&output);
+    ECG_wrapper(sample,&delay,&output);
     
     return PyLong_FromLong(output);
 }
@@ -38,19 +40,21 @@ static PyObject* process_sample(PyObject* self, PyObject* args)
 static PyObject* compute_features(PyObject* self, PyObject* args)
 {
     int sample;
+    int delay;
     int output;
     int16_t* features;
     
     if (!PyArg_ParseTuple(args, "i", &sample))
       return NULL;
     
-    features=ECG_wrapper(sample,&output);
+    features=ECG_wrapper(sample,&delay,&output);
     
     PyObject* out_o;
     if(output>0){
-      out_o = Create_Output_Dict(features, FEATURES_COUNT, output);
+      out_o = Create_Output_Dict(features, FEATURES_COUNT, delay, output);
     }else{
       out_o = Py_None;
+      Py_INCREF(Py_None);
     }
     
     return out_o;
@@ -60,6 +64,7 @@ static PyObject* compute_features(PyObject* self, PyObject* args)
 static PyObject* init(PyObject* self, PyObject* args)
 {
     ECG_init();
+    Py_INCREF(Py_None);
     return Py_None;
 }
 
@@ -67,6 +72,7 @@ static PyObject* init(PyObject* self, PyObject* args)
 static PyObject* finish(PyObject* self, PyObject* args)
 {
     ECG_close();
+    Py_INCREF(Py_None);
     return Py_None;
 }
 

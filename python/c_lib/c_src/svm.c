@@ -9,19 +9,30 @@
 
 #include <math.h>
 #include <stdio.h>
+#include <stdint.h>
+#include "svm_model.h"
 #include "svm.h"
 
+uint32_t exp_custom(feature_dist_data_t x, int shift);
+feature_data_t scale_data(feature_data_t x, int index);
+
 // Classifies data point x using the model in svm.h
-int svm_predict( double* x, double* dec_values )
+int svm_predict( int16_t* x, decision_data_t* dec_values )
 	{
+    // Scale
+    for(int i=0; i<n_feat; i++){
+      x[i] = scale_data(x[i],i);
+    }
+    
+    // Compute SVM
     int p = 0;
-    int vote[3] = {0,0,0};
+    int vote[3] = {0,0,0}; 
     
 		for(int i=0;i<3;i++)
     {
 			for(int j=i+1;j<3;j++)
 			{
-				double sum = 0;
+				decision_data_t sum = 0;
 				int si = start_sv[i];
 				int sj = start_sv[j];
 				int ci = n_sv[i];
@@ -29,28 +40,28 @@ int svm_predict( double* x, double* dec_values )
 
 				int k;
         int f;
-				double *coef1 = sv_coef[j-1];
-				double *coef2 = sv_coef[i];
+				decision_data_t *coef1 = sv_coef[j-1];
+				decision_data_t *coef2 = sv_coef[i];
         
-				for(k=si;k<(si+ci);k++)
+				for(k=si;k<(si+ci);k++) 
         {
-          double dist = 0;
+          feature_dist_data_t dist = 0;  
           for(f=0;f<n_feat;f++)
           {
-            double diff = x[f] - sv[k][f];
-            dist += diff*diff;
+            feature_dist_data_t diff = x[f] - sv[k][f]; 
+            dist += (diff*diff)>>feature_acc_shift;
           }
-					sum += coef1[k] * exp(-gam*dist);
+          sum += ((int64_t)coef1[k] * exp_custom(dist/gam_inv,(feature_shift<<1)-feature_acc_shift))>>kernel_acc_shift;
         }
 				for(k=sj;k<(sj+cj);k++)
 				{
-          double dist = 0;
-          for(f=0;f<n_feat;f++)
+          feature_dist_data_t dist = 0;
+          for(f=0;f<n_feat;f++) 
           {
-            double diff = x[f] - sv[k][f];
-            dist += diff*diff;
+            feature_dist_data_t diff = x[f] - sv[k][f];
+            dist += (diff*diff)>>feature_acc_shift;
           }
-					sum += coef2[k] * exp(-gam*dist);
+					sum += ((int64_t)coef2[k] * exp_custom(dist/gam_inv,(feature_shift<<1)-feature_acc_shift))>>kernel_acc_shift;
         }
 				sum += rho[p];
 				dec_values[p] = sum;
@@ -71,3 +82,33 @@ int svm_predict( double* x, double* dec_values )
       
 		return vote_max_idx+1;
 	}
+
+uint32_t exp_custom(feature_dist_data_t x, int input_shift){
+  
+  // Approximates exp function by successive multiplication (positive input only)
+  // Start at 1
+  // If i-th bit of x is 1, multiplies by exp(2^i) (stored in exp_ai vector)
+  
+  // Input is fixed point with "input_shift" decimal bits
+  // Output is fixed point with "exp_shift" decimal bits
+  
+  int index = (-input_shift<exp_ai_min)?exp_ai_min:-input_shift; // Iterations start at highest of input decimal resolution or factor resolution
+  uint32_t val = 1U<<exp_shift; // Start at 1 (fixed point)
+  feature_dist_data_t mask = 1U<<(index+input_shift); // Mask to select bits from input
+  if((x>>(input_shift+exp_ai_max))>0){ // If value is high (above array range), result is approximated to 0
+    val = 0;
+  }else{
+    for(;index<=exp_ai_max;index++){ // For each bit of input
+      if(mask & x){ // Check if bit is 1
+        val = (val*exp_ai[index-exp_ai_min])>>exp_shift; // Multiply and shift back to fixed point position (multiplication of 2 fixed-point with exp_shift decimal bits)
+      }
+      mask = mask<<1;
+    }
+  }
+  return val;
+}
+
+feature_data_t scale_data(feature_data_t x, int index){
+  feature_data_t output = ((x-scale_mean[index])*scale_std[index])>>scale_shift;
+  return output;
+}

@@ -33,7 +33,7 @@ def openRecord(record_ID = 100, N_db = None, showFigures = False, verbose = Fals
   if lead_MLII_idx==0 :
     ECG = ecg_db
   else :
-    ECG[:,[0, 1]] = ecg_db[:,[1,0]]
+    ECG = ecg_db[:,[1,0]]
   
   # Create time vector
   Fs_db = fields.get("fs")
@@ -54,6 +54,10 @@ def openRecord(record_ID = 100, N_db = None, showFigures = False, verbose = Fals
   
   # Map annotation samples to time value
   ann_time = ann_db.sample/Fs_db
+  
+  # Remove not beat annotations
+  ann_time = ann_time[ann_label!=NOT_BEAT]
+  ann_label = ann_label[ann_label!=NOT_BEAT]
   
   # Concatenate annotation data in dict structure
   annot = {'label': ann_label,'time':ann_time} 
