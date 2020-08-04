@@ -5,6 +5,8 @@ Created on Thu Jul  14 12:00:00 2020
 @author: saeidi
 """
 
+from AFEmodel_functions import *
+
 #####################################################################
 ####                      *    TEST CODES    *
 #####################################################################    
@@ -37,3 +39,4 @@ plt.xlabel('time (Sec)')
 plt.ylabel('Dig_out ')
 plt.xlim([0.0, 1])
 
+plt.show()

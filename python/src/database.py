@@ -8,6 +8,8 @@ from os import path
 import wfdb
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy import interpolate
+import time
 
 from src import annotations 
 from src.defines import *
@@ -17,7 +19,10 @@ from src.defines import *
 # - ECG = [2xN_db] list containing samples of ECG signal for each lead, in mV
 # - time = [N_db] list of corresponding time instants
 # - annotations = dictionary with annotation information ('label' for the N/S/V/F/Q/other annotation [cfr defines], 'time' for the time location [seconds])
-def openRecord(record_ID = 100, N_db = None, showFigures = False, verbose = False):
+def openRecord(record_ID = 100, Fs_resample = None, N_db = None, showFigures = False, verbose = False, stopwatch = False):
+  
+  t_start = time.time()
+  
   # Full record path
   database = 'mitdb'
   record_path = database+'/'+str(record_ID)
@@ -27,6 +32,8 @@ def openRecord(record_ID = 100, N_db = None, showFigures = False, verbose = Fals
   
   # Open record
   ecg_db, fields = wfdb.rdsamp(record_path, sampto=N_db)
+  
+  t_open = time.time()
   
   # Reorder signals to have MLII lead first
   lead_MLII_idx = fields.get("sig_name").index('MLII')
@@ -62,6 +69,8 @@ def openRecord(record_ID = 100, N_db = None, showFigures = False, verbose = Fals
   # Concatenate annotation data in dict structure
   annot = {'label': ann_label,'time':ann_time} 
   
+  t_process = time.time()
+  
   # Plot signals
   if showFigures:
     fig, axs = plt.subplots(3, sharex=True)
@@ -74,6 +83,22 @@ def openRecord(record_ID = 100, N_db = None, showFigures = False, verbose = Fals
     axs[2].set(ylabel="Annotations",xlabel="Time[s]",ylim=[0.5,5.5])
     axs[2].set_yticks(np.arange(1,6))
     axs[2].set_yticklabels(['N','S','V','F','Q'])
+  
+  t_plot = time.time()
+  
+  if Fs_resample is None:
+    ECG_out = ECG
+    time_out = time_db
+  else:
+    n_resample = int( Fs_resample / Fs_db * len(ECG[0]))
+    time_out = np.arange(0,n_resample)/Fs_resample
+    tck0 = interpolate.splrep(time_db,ECG[0], s=0)
+    tck1 = interpolate.splrep(time_db,ECG[1], s=0)
+    ECG_out = np.zeros((2,n_resample))
+    ECG_out[0] = interpolate.splev(time_out, tck0, der=0)
+    ECG_out[1] = interpolate.splev(time_out, tck1, der=0)
+  
+  t_resample = time.time()
   
   # Print information
   if verbose :
@@ -93,4 +118,16 @@ def openRecord(record_ID = 100, N_db = None, showFigures = False, verbose = Fals
     print(" - Q\t\t\t : %d" % (np.sum(ann_label==BEAT_Q)))
     print("####################################################")
   
-  return ECG,time_db,annot
+  if stopwatch :
+    print("####################################################")
+    print("Database access timing report" )
+    print("")
+    print("- Open database     {:4.3f}s".format(t_open-t_start))
+    print("- Data pre-process  {:4.3f}s".format(t_process-t_open))
+    print("- Plot signals      {:4.3f}s".format(t_plot-t_process))
+    print("- Resample signals  {:4.3f}s".format(t_resample-t_plot))
+    print("")
+    print("- Total             {:4.3f}s".format(t_resample-t_start))
+    print("####################################################")
+  
+  return ECG_out,time_out,annot

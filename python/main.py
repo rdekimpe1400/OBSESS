@@ -23,7 +23,7 @@ def run_framework_single_record(record_ID = 100, save_features=True, append_feat
   params = default_parameters()
   
   # Get signals and annotations from database
-  ECG, time, annotations = database.openRecord(record_ID = record_ID, showFigures = False, verbose = True)
+  ECG, time, annotations = database.openRecord(record_ID = record_ID, Fs_resample = 1000, N_db = None, showFigures = False, verbose = True, stopwatch=True)
   
   # Run smart sensor model
   power, detections, features = model.systemModel(ECG,time)
@@ -80,8 +80,8 @@ def print_header():
 if __name__ == "__main__":
   print_header()
   start_time = time.time()
-  #run_framework_single_record(record_ID = 100)
-  run_framework_all_records(save_features=False)
+  run_framework_single_record(record_ID = 100)
+  #run_framework_all_records(save_features=False)
   end_time = time.time()
   print('Total execution time: {:5.3f} seconds'.format(end_time-start_time))
   plt.show()

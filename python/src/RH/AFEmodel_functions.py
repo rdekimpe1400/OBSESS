@@ -15,7 +15,7 @@ from scipy import signal
 def read_resample_ECG(signalID, ECG_resamplerate):
     N_db = None
     ECG_samplerate = 360    
-    record_name = './mit-bih-arrhythmia-database-1.0.0/'+str(signalID)
+    record_name = '../mitdb/'+str(signalID)
     ecg_db, fields = wfdb.rdsamp(record_name, sampto=N_db)
     ecg = ecg_db[:,0]
     ecg2 = ecg_db[:,1]    
@@ -59,7 +59,7 @@ def input_noise(samplerate, oversampling_factor):
 from scipy.interpolate import interp1d
 def IA_dist():          
     X, X0 , Y = [], [], []
-    for line in open('IA_dist.dat', 'r'):
+    for line in open('../AFE_data/IA_dist.dat', 'r'):
       values = [float(s) for s in line.split()]
       if round(values[2]*1e6)/1e6 != 0:
         X.append(values[0])
@@ -79,7 +79,7 @@ def IA_dist():
 #################################### VCO Transfer Function  
 def VCO_dist():            
     X, Y , Y0 = [], [], []
-    for line in open('VCO_TF.dat', 'r'):
+    for line in open('../AFE_data/VCO_TF.dat', 'r'):
       values = [float(s) for s in line.split()]
       X.append(values[0])
       Y.append(values[1])
