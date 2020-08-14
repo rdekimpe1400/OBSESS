@@ -13,7 +13,7 @@
 #define MAX_LEVELS  5
 
 int16_t* wavedec(int16_t* input, int inlen, int level, int* outlen);
-int16_t* dwt_bufferinit(int N, int level);
+int dwt_bufferinit(int N, int level);
 int* dwt_bufferlength(void);
 
 #endif //DWT_H_

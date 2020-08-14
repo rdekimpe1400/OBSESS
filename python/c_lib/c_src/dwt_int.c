@@ -143,12 +143,12 @@ int* dwt_bufferlength(){
   return buffer_length;
 }
 
-int16_t* dwt_bufferinit(int N, int level){
+int dwt_bufferinit(int N, int level){
   int len_tot = dwt_bufferlen(N, F_l,F_h,level);
   
   output_buffer = (int16_t*) malloc(len_tot*sizeof(int16_t));
   
-  return output_buffer;
+  return len_tot;
 }
 
 int16_t* wavedec(int16_t* input, int inlen, int level, int* outlen){

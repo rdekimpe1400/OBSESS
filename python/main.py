@@ -41,7 +41,7 @@ def run_framework_all_records(save_features=True):
   
   sets = []
   
-  #sets.append(("train",[101,106,108,109,112,114,115,116,118,119,122,124,201,203,205,207,208,209,215,220,223,230]))
+  sets.append(("train",[101,106,108,109,112,114,115,116,118,119,122,124,201,203,205,207,208,209,215,220,223,230]))
   sets.append(("test",[100,103,105,111,113,117,121,123,200,202,210,212,213,214,219,221,222,228,231,232,233,234]))
   #sets.append(("train",[112,114,115]))
   #sets.append(("test",[100,103]))
@@ -80,8 +80,8 @@ def print_header():
 if __name__ == "__main__":
   print_header()
   start_time = time.time()
-  run_framework_single_record(record_ID = 100)
-  #run_framework_all_records(save_features=False)
+  #run_framework_single_record(record_ID = 100)
+  run_framework_all_records(save_features=False)
   end_time = time.time()
   print('Total execution time: {:5.3f} seconds'.format(end_time-start_time))
   plt.show()

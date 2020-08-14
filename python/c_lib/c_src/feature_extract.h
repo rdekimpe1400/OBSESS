@@ -20,6 +20,9 @@
 
 #define FEATURES_SELECT_COUNT   12
 
+#define FEATURES_SMOOTH_COUNT   8
+#define FEATURES_SMOOTH_COUNT_LOG   3
+
 #define DWT_LEVEL 4
 #define DWT_BEFORE 60
 #define DWT_AFTER 60
@@ -28,5 +31,7 @@
 // Function declaration
 int16_t* extract_features(void);
 int16_t* select_features(int16_t* feature_all);
+void smooth_features_init(int length);
+int16_t* deviation_features(int16_t* input_features, int length);
 
 #endif //FEATURES_H_

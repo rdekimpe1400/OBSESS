@@ -63,7 +63,8 @@ void ECG_init(){
   QRSDet( 0, 0, 1 );
   QRSFilter( 0, 1, &dummy );
   init_buffers();
-  dwt_bufferinit(DWT_LENGTH, DWT_LEVEL);
+  int dwt_len = dwt_bufferinit(DWT_LENGTH, DWT_LEVEL);
+  smooth_features_init(FEATURES_COUNT_TIME+FEATURES_COUNT_DWT);
   return;
 }
 
