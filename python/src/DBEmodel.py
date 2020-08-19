@@ -10,7 +10,7 @@ import ECGlib
 import QRSlib
 
 #
-def digitalBackEndModel(ECG,time, showFigures = False):
+def digitalBackEndModel(ECG,time, params = {}, showFigures = False):
   
   N = len(time)
   

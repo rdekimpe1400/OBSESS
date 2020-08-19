@@ -20,32 +20,31 @@ from src.AFE import ADC
 # Outputs:
 # - ECG_dig: vector of digitized ECG samples
 # - time_dig: sampling time vector (same as input time_dig if provided)
-def analogFrontEndModel(ECG,time_analog, IA_TF = None, VCO_TF=None, IA_DCout=0.6, Fs=200, N_bits=16, vref=1.2, showFigures = False, stopwatch = False):
+def analogFrontEndModel(ECG,time_analog, params = {}, IA_TF = None, VCO_TF=None, showFigures = False, stopwatch = False):
   
   t_start = time.time()
   
   # Create transfer functions
   if IA_TF is None:
-    IA_TF= IA.IA_dist()
+    IA_TF= IA.IA_dist(params = params)
   if VCO_TF is None:
-    VCO_TF= ADC.VCO_dist()
+    VCO_TF= ADC.VCO_dist(params = params)
   
   t_tf = time.time()
   
   # Apply IA model
   IA_Vin_diff = ECG * 1e-3 # (mV)    
-  IA_Vout_p = IA_DCout + IA_TF(IA_Vin_diff)/2 
-  IA_Vout_m = IA_DCout - IA_TF(IA_Vin_diff)/2 
+  IA_Vout_p = params["IA_DCout"] + IA_TF(IA_Vin_diff)/2 
+  IA_Vout_m = params["IA_DCout"] - IA_TF(IA_Vin_diff)/2 
   
   t_ia = time.time()
   
   # Apply ADC model
   dt = time_analog[1]-time_analog[0]
   freq_VCO_p = VCO_TF(IA_Vout_p)
-  ADC_out_p,time_dig = ADC.Counter_ADC(freq_VCO_p, time_analog, Fs)
+  ADC_out_p,time_dig = ADC.Counter_ADC(freq_VCO_p, time_analog, params["ADC_Fs"])
   freq_VCO_m = VCO_TF(IA_Vout_m)
-  ADC_out_m,_ = ADC.Counter_ADC(freq_VCO_m, time_analog, Fs)
-  #time_dig = np.linspace(0,(len(ADC_out_m)-1)/Fs,len(ADC_out_m))
+  ADC_out_m,_ = ADC.Counter_ADC(freq_VCO_m, time_analog, params["ADC_Fs"])
   ADC_out = ADC_out_p - ADC_out_m
 
   t_adc = time.time()

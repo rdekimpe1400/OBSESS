@@ -26,7 +26,7 @@ def run_framework_single_record(record_ID = 100, save_features=True, append_feat
   ECG, time, annotations = database.openRecord(record_ID = record_ID, Fs_resample = 1000, N_db = None, showFigures = False, verbose = True, stopwatch=True)
   
   # Run smart sensor model
-  power, detections, features = model.systemModel(ECG,time)
+  power, detections, features = model.systemModel(ECG,time,params=params)
   
   # Comparison of output with annotations
   det_sensitivity, det_PPV, matched_labels, confmat = evaluation.compareAnnotations(annotations, detections, time, ECG,showFigure = False)
@@ -67,7 +67,10 @@ def run_framework_all_records(save_features=True):
   
 
 def default_parameters():
-  params = {}
+  params = {"IA_TF_file":'./src/AFE/AFE_data/IA_dist.dat',
+            "IA_DCout": 0.6,
+            "ADC_Fs": 200,
+            "ADC_VCO_TF_file":'./src/AFE/AFE_data/VCO_TF.dat'}
   return params
 
 def print_header():
