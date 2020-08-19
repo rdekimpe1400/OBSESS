@@ -8,6 +8,8 @@
 # Last update: 06.2020
 #
 
+import sys
+import getopt
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -80,11 +82,47 @@ def print_header():
   print('|                                    |')
   print('--------------------------------------')
 
+def print_help():
+  print('OBSESS system model')
+  print('main.py [-h] [-a] [-r <recordNumber>]')
+  print("")
+  print("Default: Run system model for record 100")
+  print("")
+  print("Arguments: ")
+  print(" -h (--help)    >> Display help ")
+  print(" -a (--all)     >> Run model for all records ")
+  print(" -r (--record)  >> Run model for specified record only (overriden by -a) ")
+  print(" -v (--verbose) >> Increase verbosity ")
+
 if __name__ == "__main__":
+  try:
+    opts, args = getopt.getopt(sys.argv[1:],"har:v",["help","all","record=","verbose"])
+  except getopt.GetoptError:
+    print_help()
+    sys.exit(2)
+  # Default settings
+  single = True
+  verbose = False
+  record = 100
+  # Optional settings
+  for opt, arg in opts:
+    if opt in ("-h", "--help"):
+      print_help()
+      sys.exit()
+    elif opt in ("-a", "--all"):
+      single = False
+    elif opt in ("-r", "--record"):
+      record = int(arg)
+    elif opt in ("-v", "--verbose"):
+      verbose = True
+  
+  # Start
   print_header()
   start_time = time.time()
-  run_framework_single_record(record_ID = 100)
-  #run_framework_all_records(save_features=False)
+  if single:
+    run_framework_single_record(record_ID = record)
+  else:
+    run_framework_all_records(save_features=False)
   end_time = time.time()
   print('Total execution time: {:5.3f} seconds'.format(end_time-start_time))
   plt.show()
