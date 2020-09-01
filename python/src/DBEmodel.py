@@ -35,4 +35,37 @@ def digitalBackEndModel(ECG,time, params = {}, showFigures = False):
   # Close 
   ECGlib.finish()
   
-  return det_labels, det_time, features
+  # Power
+  power = DBEPower(params = params)
+  
+  return det_labels, det_time, features, power
+  
+def DBEPower(params = {}, showFigures = False):
+  
+  bpm = 100
+  
+  #Detect
+  detectTimePerSample = 7.5e-6
+  detectPower = 484e-6
+  samplesPerBeat = params["ADC_Fs"]*60/bpm
+  detectEnergy = detectTimePerSample*samplesPerBeat*detectPower
+  
+  #Feature extraction
+  FEtime = 273e-6
+  FEpower = 669e-6
+  FEenergy = FEtime*FEpower
+  
+  #SVM
+  n_sv = 253
+  n_feat = 12
+  SVMpower = 692e-6
+  SVMtime = (3.91e-2*n_feat+9.74e-3*n_sv-0.4)*1e-3
+  SVMenergy = SVMpower*SVMtime
+  
+  #Total
+  totalEnergy = detectEnergy + FEenergy + SVMenergy
+  averagePower = totalEnergy*bpm/60
+  print("POWER")
+  print(averagePower)
+  
+  return averagePower
