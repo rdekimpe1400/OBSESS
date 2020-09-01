@@ -7,7 +7,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import ECGlib
-import QRSlib
 
 #
 def digitalBackEndModel(ECG,time, params = {}, showFigures = False):
@@ -19,7 +18,7 @@ def digitalBackEndModel(ECG,time, params = {}, showFigures = False):
   ECG = ECG - ecg_zero
   
   # Initialize
-  ECGlib.init()
+  config = ECGlib.init()
   
   det_time = []
   det_labels = []
@@ -36,13 +35,13 @@ def digitalBackEndModel(ECG,time, params = {}, showFigures = False):
   ECGlib.finish()
   
   # Power
-  power = DBEPower(params = params)
+  power = DBEPower(config['n_sv'], config['n_feat'],params = params)
   
   return det_labels, det_time, features, power
   
-def DBEPower(params = {}, showFigures = False):
+def DBEPower(n_sv, n_feat, params = {}, showFigures = False):
   
-  bpm = 100
+  bpm = params["average_bpm"]
   
   #Detect
   detectTimePerSample = 7.5e-6
@@ -56,8 +55,6 @@ def DBEPower(params = {}, showFigures = False):
   FEenergy = FEtime*FEpower
   
   #SVM
-  n_sv = 253
-  n_feat = 12
   SVMpower = 692e-6
   SVMtime = (3.91e-2*n_feat+9.74e-3*n_sv-0.4)*1e-3
   SVMenergy = SVMpower*SVMtime
@@ -65,7 +62,5 @@ def DBEPower(params = {}, showFigures = False):
   #Total
   totalEnergy = detectEnergy + FEenergy + SVMenergy
   averagePower = totalEnergy*bpm/60
-  print("POWER")
-  print(averagePower)
   
   return averagePower

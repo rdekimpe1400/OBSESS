@@ -112,3 +112,11 @@ feature_data_t scale_data(feature_data_t x, int index){
   feature_data_t output = ((x-scale_mean[index])*scale_std[index])>>scale_shift;
   return output;
 }
+
+int get_nSV(){
+  return n_sv_tot;
+}
+
+int get_nFeatures(){
+  return n_feat;
+}

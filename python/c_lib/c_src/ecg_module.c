@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include "ecg.h" 
 #include "feature_extract.h" 
+#include "svm.h" 
 
 PyObject *Create_Output_Dict(int16_t* features, int length, int delay, int class)
   { 
@@ -18,6 +19,15 @@ PyObject *Create_Output_Dict(int16_t* features, int length, int delay, int class
     PyDict_SetItemString(output, "features", features_list);
     PyDict_SetItemString(output, "delay", PyLong_FromLong(delay));
     PyDict_SetItemString(output, "class", PyLong_FromLong(class));
+    return output;
+  }
+  
+PyObject *Create_Config_Dict(int n_sv, int n_feat)
+  { 
+    PyObject *output;
+    output = PyDict_New();
+    PyDict_SetItemString(output, "n_sv", PyLong_FromLong(n_sv));
+    PyDict_SetItemString(output, "n_feat", PyLong_FromLong(n_feat));
     return output;
   }
   
@@ -64,8 +74,11 @@ static PyObject* compute_features(PyObject* self, PyObject* args)
 static PyObject* init(PyObject* self, PyObject* args)
 {
     ECG_init();
-    Py_INCREF(Py_None);
-    return Py_None;
+    
+    PyObject* out_o;
+    out_o = Create_Config_Dict(get_nSV(), get_nFeatures());
+    
+    return out_o;
 }
 
 // Closing function

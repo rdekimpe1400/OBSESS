@@ -33,6 +33,9 @@ def run_framework_single_record(record_ID = 100, save_features=True, append_feat
   # Comparison of output with annotations
   det_sensitivity, det_PPV, matched_labels, confmat = evaluation.compareAnnotations(annotations, detections, time, ECG,showFigure = False)
   
+  # Print power results
+  evaluation.printPower(power, params=params)
+  
   # Save features to file
   if save_features:
     data_IO.save_features(detections, features,matched_labels,subset=ID,file_name= 'output/features_'+run_name+'.dat',append=append_features)
@@ -72,7 +75,8 @@ def default_parameters():
   params = {"IA_TF_file":'./src/AFE/AFE_data/IA_dist.dat',
             "IA_DCout": 0.6,
             "ADC_Fs": 200,
-            "ADC_VCO_TF_file":'./src/AFE/AFE_data/VCO_TF.dat'}
+            "ADC_VCO_TF_file":'./src/AFE/AFE_data/VCO_TF.dat',
+            "average_bpm": 100}
   return params
 
 def print_header():

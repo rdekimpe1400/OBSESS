@@ -19,9 +19,15 @@ def systemModel(ECG,time, params = {}, verbose = False, showFigures = False):
   # Run DBE model
   # Input is the digitized signal with time vector
   # Output is the label of detected beats with corresponding time 
-  labels, time_det, features = DBEmodel.digitalBackEndModel(ECG_dig,time_dig, params = params, showFigures = showFigures)
+  labels, time_det, features, powerDBE = DBEmodel.digitalBackEndModel(ECG_dig,time_dig, params = params, showFigures = showFigures)
   
   detect = {'label': labels,'time':time_det} 
   
-  power = 0
+  # Output power
+  powerAFE = 0
+  powerTOT = powerDBE + powerAFE
+  power = {"total": powerTOT,
+           "AFE": powerAFE,
+           "DBE": powerDBE}
+  
   return power, detect, features

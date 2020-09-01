@@ -208,3 +208,15 @@ def statClass(confmat,verbose = True):
     print("####################################################",flush=True)
   
   return jk,j,k
+
+def printPower(power, params = {}):  
+  print("####################################################")
+  print("Power statistics")
+  print("")
+  print("Average power\t\t : {:6.2f} µW".format(power["total"]*1e6))
+  print(" - AFE \t\t\t : {:6.2f} µW".format(power["AFE"]*1e6))
+  print(" - DBE \t\t\t : {:6.2f} µW".format(power["DBE"]*1e6))
+  print("")
+  print("Average energy per beat\t : {:6.2f} µJ".format(power["total"]*1e6*60/params["average_bpm"]))
+  print("####################################################",flush=True)
+  
