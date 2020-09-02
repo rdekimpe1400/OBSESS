@@ -25,7 +25,7 @@ def run_framework_single_record(record_ID = 100, save_features=True, append_feat
   params = default_parameters()
   
   # Get signals and annotations from database
-  ECG, time, annotations = database.openRecord(record_ID = record_ID, Fs_resample = 1000, N_db = None, showFigures = False, verbose = True, stopwatch=True)
+  ECG, time, annotations = database.openRecord(record_ID = record_ID, params=params, N_db = None, showFigures = False, verbose = True, stopwatch=True)
   
   # Run smart sensor model
   power, detections, features = model.systemModel(ECG,time,params=params)
@@ -72,8 +72,11 @@ def run_framework_all_records(save_features=True):
   
 
 def default_parameters():
-  params = {"IA_TF_file":'./src/AFE/AFE_data/IA_dist.dat',
+  params = {"analog_resample":1000,
+            "IA_TF_file":'./src/AFE/AFE_data/IA_dist.dat',
             "IA_DCout": 0.6,
+            "IA_thermal_noise" : 0.095e-4,
+            "IA_flicker_noise_corner" : 1,
             "ADC_Fs": 200,
             "ADC_VCO_TF_file":'./src/AFE/AFE_data/VCO_TF.dat',
             "average_bpm": 100}
