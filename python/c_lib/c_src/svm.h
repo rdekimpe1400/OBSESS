@@ -13,3 +13,4 @@ int get_nSV();
 int get_nFeatures();
 
 #endif //SVM_H_
+ 
