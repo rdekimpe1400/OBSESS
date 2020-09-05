@@ -11,7 +11,7 @@ def systemModel(ECG,time, params = {}, verbose = False, showFigures = False):
   # Run AFE model
   # Input is the signal from the database with time vector
   # Output is the digitized signal with time vector after AFE non-idealities
-  ECG_dig0, time_dig = AFEmodel.analogFrontEndModel(ECG[0],time, params = params, showFigures = True, stopwatch=True)
+  ECG_dig0, time_dig = AFEmodel.analogFrontEndModel(ECG[0],time, params = params, showFigures = showFigures, stopwatch=True)
   ECG_dig1, _ = AFEmodel.analogFrontEndModel(ECG[1],time, params = params, showFigures = showFigures)
   
   ECG_dig = [ECG_dig0,ECG_dig1]

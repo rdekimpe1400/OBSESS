@@ -65,7 +65,7 @@ def openRecord(record_ID = 100, params = {}, N_db = None, showFigures = False, v
   # Remove not beat annotations
   ann_time = ann_time[ann_label!=NOT_BEAT]
   ann_label = ann_label[ann_label!=NOT_BEAT]
-  
+    
   # Concatenate annotation data in dict structure
   annot = {'label': ann_label,'time':ann_time} 
   
@@ -117,6 +117,7 @@ def openRecord(record_ID = 100, params = {}, N_db = None, showFigures = False, v
     print(" - V\t\t\t : %d" % (np.sum(ann_label==BEAT_V)))
     print(" - F\t\t\t : %d" % (np.sum(ann_label==BEAT_F)))
     print(" - Q\t\t\t : %d" % (np.sum(ann_label==BEAT_Q)))
+    print(" - XX\t\t\t : %d" % (np.sum(ann_label==NOT_BEAT)))
     print("####################################################")
   
   if stopwatch :

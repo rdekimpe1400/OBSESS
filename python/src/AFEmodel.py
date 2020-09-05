@@ -39,9 +39,12 @@ def analogFrontEndModel(ECG,time_analog, params = {}, IA_TF = None, VCO_TF=None,
   
   t_tf = time.time()
   
-  # Apply IA model
-  IA_thermal_noise, IA_flicker_noise, IA_noise = noise.input_noise(f_analog,n_analog,params = params)
-  ECG = ECG + IA_noise*1e3
+  # ECG from mV to V
+  ECG = ECG * 1e-3
+  
+  # Add IA noise
+  IA_thermal_noise, IA_flicker_noise, IA_noise = noise.input_noise(f_analog,n_analog,params['IA_thermal_noise'],params['IA_flicker_noise_corner'])
+  ECG = ECG + IA_noise
   
   # Plot noise
   if False:
@@ -69,11 +72,17 @@ def analogFrontEndModel(ECG,time_analog, params = {}, IA_TF = None, VCO_TF=None,
     axs[1].set_ylim([1e-10, 1e-5])
   
   # Apply IA model
-  IA_Vin_diff = ECG * 1e-3 # (mV)    
+  IA_Vin_diff = ECG   
   IA_Vout_p = params["IA_DCout"] + IA_TF(IA_Vin_diff)/2 
   IA_Vout_m = params["IA_DCout"] - IA_TF(IA_Vin_diff)/2 
   
   t_ia = time.time()
+  
+  # Add ADC noise
+  _,_, ADC_noise_p = noise.input_noise(f_analog,n_analog,params['ADC_thermal_noise'],None)
+  IA_Vout_p = IA_Vout_p + ADC_noise_p
+  _,_, ADC_noise_m = noise.input_noise(f_analog,n_analog,params['ADC_thermal_noise'],None)
+  IA_Vout_m = IA_Vout_m + ADC_noise_m
   
   # Apply ADC model
   freq_VCO_p = VCO_TF(IA_Vout_p)
@@ -117,6 +126,4 @@ def analogFrontEndModel(ECG,time_analog, params = {}, IA_TF = None, VCO_TF=None,
     print("- Total                         {:4.3f}s".format(t_plot-t_start))
     print("####################################################")
   
-  plt.show()
-  exit()
   return ECG_dig, time_dig

@@ -27,7 +27,7 @@ def save_features(detections, features,matched_labels,subset=0,file_name="output
   
   return
 
-# Read features to file
+# Read features from file
 def read_features(file_name="output/features.dat"):
   file = open(file_name,'r')
   for i, l in enumerate(file):

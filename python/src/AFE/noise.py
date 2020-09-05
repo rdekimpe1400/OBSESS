@@ -31,18 +31,22 @@ def white_noise(f_sample,n_sample,v_therm):
     noise = np.random.normal(0,np.sqrt(noise_power),n_sample)
     return noise
     
-def input_noise(f_sample,n_sample, params = {}):
+def input_noise(f_sample,n_sample, v_therm, f_flick_corner):
     max_freq = 100 
     min_freq = 0
-    thermal_noise = white_noise(f_sample,n_sample,params['IA_thermal_noise'])    
+    thermal_noise = white_noise(f_sample,n_sample,v_therm)    
     beta = 1 # the exponent
     
-    flicker_noise = cn.powerlaw_psd_gaussian(beta, n_sample, 0) 
-    f = np.fft.rfftfreq(n_sample,1/f_sample)
-    f[0] = f[1]
-    f = f**(-1/2.)
-    s = np.sqrt(np.mean(f**2))
-    flicker_noise = flicker_noise*s*params['IA_thermal_noise']/(params['IA_flicker_noise_corner']**(-beta/2))*np.sqrt(500)
+    if f_flick_corner is None:
+      flicker_noise = None
+      total_noise = thermal_noise
+    else:
+      flicker_noise = cn.powerlaw_psd_gaussian(beta, n_sample, 0) 
+      f = np.fft.rfftfreq(n_sample,1/f_sample)
+      f[0] = f[1]
+      f = f**(-1/2.)
+      s = np.sqrt(np.mean(f**2))
+      flicker_noise = flicker_noise*s*v_therm/(f_flick_corner**(-beta/2))*np.sqrt(f_sample/2)
+      total_noise = thermal_noise+flicker_noise
     
-    total_noise = thermal_noise+flicker_noise
     return thermal_noise, flicker_noise, total_noise
