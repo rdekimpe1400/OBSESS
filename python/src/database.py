@@ -19,7 +19,7 @@ from src.defines import *
 # - ECG = [2xN_db] list containing samples of ECG signal for each lead, in mV
 # - time = [N_db] list of corresponding time instants
 # - annotations = dictionary with annotation information ('label' for the N/S/V/F/Q/other annotation [cfr defines], 'time' for the time location [seconds])
-def openRecord(record_ID = 100, Fs_resample = None, N_db = None, showFigures = False, verbose = False, stopwatch = False):
+def openRecord(record_ID = 100, params = {}, N_db = None, showFigures = False, verbose = False, stopwatch = False):
   
   t_start = time.time()
   
@@ -65,7 +65,7 @@ def openRecord(record_ID = 100, Fs_resample = None, N_db = None, showFigures = F
   # Remove not beat annotations
   ann_time = ann_time[ann_label!=NOT_BEAT]
   ann_label = ann_label[ann_label!=NOT_BEAT]
-  
+    
   # Concatenate annotation data in dict structure
   annot = {'label': ann_label,'time':ann_time} 
   
@@ -86,6 +86,7 @@ def openRecord(record_ID = 100, Fs_resample = None, N_db = None, showFigures = F
   
   t_plot = time.time()
   
+  Fs_resample = params['analog_resample']
   if Fs_resample is None:
     ECG_out = ECG
     time_out = time_db
@@ -116,6 +117,7 @@ def openRecord(record_ID = 100, Fs_resample = None, N_db = None, showFigures = F
     print(" - V\t\t\t : %d" % (np.sum(ann_label==BEAT_V)))
     print(" - F\t\t\t : %d" % (np.sum(ann_label==BEAT_F)))
     print(" - Q\t\t\t : %d" % (np.sum(ann_label==BEAT_Q)))
+    print(" - XX\t\t\t : %d" % (np.sum(ann_label==NOT_BEAT)))
     print("####################################################")
   
   if stopwatch :

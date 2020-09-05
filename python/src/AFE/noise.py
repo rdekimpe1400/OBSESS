@@ -5,6 +5,8 @@ Created on Thu Jul  10 12:00:01 2020
 @author: saeidi
 """
 
+import numpy as np
+
 #################################### Noise Functions
 import colorednoise as cn
 def fftnoise(f):
@@ -16,22 +18,35 @@ def fftnoise(f):
     f[-1:-1-Np:-1] = np.conj(f[1:Np+1])
     return np.fft.ifft(f).real
 
-def band_limited_noise(min_freq, max_freq, samples=1024, samplerate=1):
+def band_limited_white_noise(min_freq, max_freq, samples=1024, samplerate=1):
     freqs = np.abs(np.fft.fftfreq(samples, 1/samplerate))
     f = np.zeros(samples)
     idx = np.where(np.logical_and(freqs>=min_freq, freqs<=max_freq))[0]
     f[idx] = 1
-    return fftnoise(f)
+    out = fftnoise(f)
+    return out
 
-def input_noise(samplerate, oversampling_factor):
-    n_sample = 650000 * oversampling_factor * 4
-    max_freq =150 
-    min_freq = 0    
-    V_noise_BL = 0.095e-6     
-    noise_BL = band_limited_noise(min_freq, max_freq, n_sample, samplerate)
-    noise_BL = noise_BL * 0.7 * np.sqrt(n_sample*samplerate) * V_noise_BL
+def white_noise(f_sample,n_sample,v_therm):
+    noise_power = v_therm**2 * f_sample / 2
+    noise = np.random.normal(0,np.sqrt(noise_power),n_sample)
+    return noise
+    
+def input_noise(f_sample,n_sample, v_therm, f_flick_corner):
+    max_freq = 100 
+    min_freq = 0
+    thermal_noise = white_noise(f_sample,n_sample,v_therm)    
     beta = 1 # the exponent
-    f_flicker = 1    
-    pink_noise = cn.powerlaw_psd_gaussian(beta, n_sample, 0) 
-    pink_noise = pink_noise * 3.85 * V_noise_BL * np.sqrt(f_flicker) 
-    return (noise_BL, pink_noise)
+    
+    if f_flick_corner is None:
+      flicker_noise = None
+      total_noise = thermal_noise
+    else:
+      flicker_noise = cn.powerlaw_psd_gaussian(beta, n_sample, 0) 
+      f = np.fft.rfftfreq(n_sample,1/f_sample)
+      f[0] = f[1]
+      f = f**(-1/2.)
+      s = np.sqrt(np.mean(f**2))
+      flicker_noise = flicker_noise*s*v_therm/(f_flick_corner**(-beta/2))*np.sqrt(f_sample/2)
+      total_noise = thermal_noise+flicker_noise
+    
+    return thermal_noise, flicker_noise, total_noise

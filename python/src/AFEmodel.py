@@ -7,9 +7,11 @@ from scipy.interpolate import interp1d
 import numpy as np
 import matplotlib.pyplot as plt
 import time
+from scipy import signal
 
 from src.AFE import IA
 from src.AFE import ADC
+from src.AFE import noise
 
 # Analog front-end signal transfer function model with non-idealities
 # Inputs:
@@ -20,32 +22,73 @@ from src.AFE import ADC
 # Outputs:
 # - ECG_dig: vector of digitized ECG samples
 # - time_dig: sampling time vector (same as input time_dig if provided)
-def analogFrontEndModel(ECG,time_analog, IA_TF = None, VCO_TF=None, IA_DCout=0.6, Fs=200, N_bits=16, vref=1.2, showFigures = False, stopwatch = False):
+def analogFrontEndModel(ECG,time_analog, params = {}, IA_TF = None, VCO_TF=None, showFigures = False, stopwatch = False):
   
   t_start = time.time()
   
+  # Input signal properties
+  f_analog = params['analog_resample']
+  dt_analog = 1/params['analog_resample']
+  n_analog = len(ECG)
+  
   # Create transfer functions
   if IA_TF is None:
-    IA_TF= IA.IA_dist()
+    IA_TF= IA.IA_dist(params = params)
   if VCO_TF is None:
-    VCO_TF= ADC.VCO_dist()
+    VCO_TF= ADC.VCO_dist(params = params)
   
   t_tf = time.time()
   
+  # ECG from mV to V
+  ECG = ECG * 1e-3
+  
+  # Add IA noise
+  IA_thermal_noise, IA_flicker_noise, IA_noise = noise.input_noise(f_analog,n_analog,params['IA_thermal_noise'],params['IA_flicker_noise_corner'])
+  ECG = ECG + IA_noise
+  
+  # Plot noise
+  if False:
+    fx = np.fft.rfftfreq(n_analog,dt_analog)
+    fx[0] = fx[1]
+    fx = fx**(-1/2.)
+    s = np.sqrt(np.mean(fx**2))
+    flick = fx*params['IA_thermal_noise']/(params['IA_flicker_noise_corner']**(-1/2))
+    f, Pxx_den_therm = signal.periodogram(IA_thermal_noise, f_analog)
+    f, Pxx_den_flick = signal.periodogram(IA_flicker_noise, f_analog)
+    f, Pxx_den_total = signal.periodogram(IA_noise, f_analog)
+    fig, axs = plt.subplots(2)
+    fig.suptitle("IA input-referred noise")
+    axs[0].loglog(f, np.sqrt(Pxx_den_therm),label="Thermal (sim)")
+    axs[0].loglog(f, np.ones_like(Pxx_den_therm)*params['IA_thermal_noise'],label="Thermal (ideal)")
+    axs[0].loglog(f, np.sqrt(Pxx_den_flick),label="Flicker (sim)")
+    axs[0].loglog(np.fft.rfftfreq(n_analog,dt_analog),flick,label="Flicker (ideal)")
+    axs[0].set_ylim([1e-10, 1e-5])
+    axs[0].set_xlabel('frequency [Hz]')
+    axs[0].set_ylabel('PSD [V/sqrt(Hz)]')
+    axs[0].legend(loc='upper right')
+    axs[1].loglog(f, np.sqrt(Pxx_den_total))
+    axs[1].set_xlabel('frequency [Hz]')
+    axs[1].set_ylabel('PSD [V/sqrt(Hz)]')
+    axs[1].set_ylim([1e-10, 1e-5])
+  
   # Apply IA model
-  IA_Vin_diff = ECG * 1e-3 # (mV)    
-  IA_Vout_p = IA_DCout + IA_TF(IA_Vin_diff)/2 
-  IA_Vout_m = IA_DCout - IA_TF(IA_Vin_diff)/2 
+  IA_Vin_diff = ECG   
+  IA_Vout_p = params["IA_DCout"] + IA_TF(IA_Vin_diff)/2 
+  IA_Vout_m = params["IA_DCout"] - IA_TF(IA_Vin_diff)/2 
   
   t_ia = time.time()
   
+  # Add ADC noise
+  _,_, ADC_noise_p = noise.input_noise(f_analog,n_analog,params['ADC_thermal_noise'],None)
+  IA_Vout_p = IA_Vout_p + ADC_noise_p
+  _,_, ADC_noise_m = noise.input_noise(f_analog,n_analog,params['ADC_thermal_noise'],None)
+  IA_Vout_m = IA_Vout_m + ADC_noise_m
+  
   # Apply ADC model
-  dt = time_analog[1]-time_analog[0]
   freq_VCO_p = VCO_TF(IA_Vout_p)
-  ADC_out_p,time_dig = ADC.Counter_ADC(freq_VCO_p, time_analog, Fs)
+  ADC_out_p,time_dig = ADC.Counter_ADC(freq_VCO_p, time_analog, params["ADC_Fs"])
   freq_VCO_m = VCO_TF(IA_Vout_m)
-  ADC_out_m,_ = ADC.Counter_ADC(freq_VCO_m, time_analog, Fs)
-  #time_dig = np.linspace(0,(len(ADC_out_m)-1)/Fs,len(ADC_out_m))
+  ADC_out_m,_ = ADC.Counter_ADC(freq_VCO_m, time_analog, params["ADC_Fs"])
   ADC_out = ADC_out_p - ADC_out_m
 
   t_adc = time.time()
