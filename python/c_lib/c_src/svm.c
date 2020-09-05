@@ -35,8 +35,8 @@ int svm_predict( int16_t* x, decision_data_t* dec_values )
 				decision_data_t sum = 0;
 				int si = start_sv[i];
 				int sj = start_sv[j];
-				int ci = n_sv[i];
-				int cj =n_sv[j];
+				int ci = n_sv_class[i];
+				int cj =n_sv_class[j];
 
 				int k;
         int f;
@@ -111,12 +111,4 @@ uint32_t exp_custom(feature_dist_data_t x, int input_shift){
 feature_data_t scale_data(feature_data_t x, int index){
   feature_data_t output = ((x-scale_mean[index])*scale_std[index])>>scale_shift;
   return output;
-}
-
-int get_nSV(){
-  return n_sv_tot;
-}
-
-int get_nFeatures(){
-  return n_feat;
 }

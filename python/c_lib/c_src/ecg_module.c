@@ -22,12 +22,12 @@ PyObject *Create_Output_Dict(int16_t* features, int length, int delay, int class
     return output;
   }
   
-PyObject *Create_Config_Dict(int n_sv, int n_feat)
+PyObject *Create_Config_Dict(int svm_n_sv, int svm_n_feat)
   { 
     PyObject *output;
     output = PyDict_New();
-    PyDict_SetItemString(output, "n_sv", PyLong_FromLong(n_sv));
-    PyDict_SetItemString(output, "n_feat", PyLong_FromLong(n_feat));
+    PyDict_SetItemString(output, "n_sv", PyLong_FromLong(svm_n_sv));
+    PyDict_SetItemString(output, "n_feat", PyLong_FromLong(svm_n_feat));
     return output;
   }
   
@@ -76,7 +76,7 @@ static PyObject* init(PyObject* self, PyObject* args)
     ECG_init();
     
     PyObject* out_o;
-    out_o = Create_Config_Dict(get_nSV(), get_nFeatures());
+    out_o = Create_Config_Dict(n_sv,n_feat);
     
     return out_o;
 }

@@ -9,8 +9,10 @@
 
 // Declaration
 int svm_predict( int16_t* x, int32_t* decision );
-int get_nSV();
-int get_nFeatures();
+
+extern const int n_feat;
+extern const int n_sv;
+extern const int feature_select_idx[];
 
 #endif //SVM_H_
  

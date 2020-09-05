@@ -193,9 +193,9 @@ def SVMtranslate(model,scaler,FS, file_name = "svm_int.h"):
   
   file.write('const int kernel_acc_shift = {};\n'.format(int(kernel_acc_shift)))
   
-  file.write('const int n_sv[3] = {{{}, {}, {}}};\n'.format(model.n_support_[0], model.n_support_[1], model.n_support_[2]))
+  file.write('const int n_sv_class[3] = {{{}, {}, {}}};\n'.format(model.n_support_[0], model.n_support_[1], model.n_support_[2]))
   
-  file.write('const int n_sv_tot = {};\n'.format(n_sv))
+  file.write('const int n_sv = {};\n'.format(n_sv))
   
   file.write('const int start_sv[3] = {{{}, {}, {}}};\n'.format(0, model.n_support_[0], model.n_support_[0]+model.n_support_[1]))
   

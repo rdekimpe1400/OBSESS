@@ -11,11 +11,12 @@ REVISED:	06/2020
 
 #include "buffer.h"
 #include "dwt_int.h"
+#include "svm.h"
 #include "feature_extract.h"
 
 // Global variables
 int16_t features[FEATURES_COUNT];   // Output feature buffer
-int16_t features_select[FEATURES_SELECT_COUNT];   // Output selected feature buffer
+int16_t *features_select;   // Output selected feature buffer
 
 int16_t **smooth_features_buffer; // Buffer 
 int32_t *smooth_features_sum; // Buffer 
@@ -52,9 +53,7 @@ int16_t* extract_features(void){
 }
       
 int16_t* select_features(int16_t* features_all){
-  //int feature_select_idx[12] = {1, 0, 11, 38, 37, 5, 3, 30, 27, 16, 55, 39};
-  int feature_select_idx[20] = {0, 1, 43, 33, 55, 39, 57, 38, 54, 58, 56, 37, 40, 60, 52, 61, 36, 48, 32, 50};
-  for(int i=0; i<FEATURES_SELECT_COUNT; i++){
+  for(int i=0; i<n_feat; i++){
     features_select[i] = features_all[feature_select_idx[i]];
   }
   
@@ -78,6 +77,11 @@ void smooth_features_init(int length){
   }
   // Init index
   smooth_idx = 0;
+  // Init feature select buffer
+  features_select = (int16_t *)malloc(n_feat * sizeof(int16_t)); 
+  for(int i=0; i<n_feat; i++){
+    features_select[i] = 0;
+  }
 }
 
 // Compute deviation from local average
