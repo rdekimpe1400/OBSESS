@@ -2,7 +2,7 @@
 /python/mitdb/
 /python/c_lib/build/
 *.pyc
-*.dat
+/python/data/*.dat
 /python/doc/*.aux
 /python/doc/*.log
 /python/doc/*.gz
