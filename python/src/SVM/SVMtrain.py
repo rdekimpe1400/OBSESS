@@ -8,16 +8,24 @@ import shutil
 from sklearn.preprocessing import StandardScaler
 from sklearn import svm
 
-from src.SVM.defines import *
+from sklearn import metrics
 
-def updateModel(labels, features, params = {}, verbose = True):
+from joblib import Parallel, delayed
+
+from src import evaluation
+from src.defines import *
+
+def updateModel(labels, features, subset, params = {}, verbose = True, cross_val = True):
   C_file = params['SVM_model_file']
   
   CFileInit(file_name = C_file) 
   
   # Train model
-  labels, features = modifLabels(labels, features) # Keep relevant classes only 
-  model, scaler, FS = trainSVM(labels, features, params)
+  labels, features,subset = modifLabels(labels, features,subset) # Keep relevant classes only 
+  if cross_val:
+    crossValSVM(labels, features, subset, params=params)
+    exit()
+  model, scaler, FS = trainSVM(labels, features, params=params)
   
   if verbose:
     print("--------------------------------------------------------")
@@ -61,7 +69,51 @@ def trainSVM(labels, features, params = {}):
   model = svm.SVC(kernel='rbf', gamma= params['SVM_gamma']/len(FS), C=100000)
   model.fit(features_reduce,labels_reduce)
   
-  return model, scaler, FS
+  return model_unpruned, scaler, FS
+
+def crossValSVM(labels, features, subset, params = {}):
+  N_rec = int(np.max(subset)+1)
+  rec_idx = list(np.random.permutation(N_rec))
+
+  folds = np.reshape(rec_idx, (-1,2))
+  N_folds = len(folds)
+  print(" ******* Cross-validation of classifier : {:d} folds ******* ".format(N_folds))
+ 
+  result = Parallel(n_jobs=12)(delayed(trainAndTestSVM_CVfold)(features, folds, fold_idx, subset, labels, N_folds = N_folds, params=params, verbose = True) for fold_idx in range(0,N_folds)) 
+
+  evaluation.statClass(np.sum(result,axis=0))
+
+def trainAndTestSVM_CVfold(features, folds, fold_idx, subset, labels, N_folds = 0, params = {}, verbose = False) :
+  test_rec = folds[fold_idx]
+  train_rec = np.concatenate(np.delete(folds, fold_idx,axis=0))
+  
+  test_idx = np.isin(subset,test_rec)
+  train_idx = np.isin(subset,train_rec)
+  
+  if(verbose):
+    print("----  Fold {:d}/{:d} started  ----".format(fold_idx+1,N_folds))
+    print("Test record [{:s}] ({:d} beats);\t train records[{:s}] ({:d} beats)".format(', '.join(map(str,test_rec)),np.sum(test_idx),', '.join(map(str,train_rec)),np.sum(train_idx)))
+  
+  features_train = features[train_idx]
+  labels_train = labels[train_idx]
+  features_test = features[test_idx]
+  labels_test = labels[test_idx]
+  
+  # Train classifier
+  model, scaler, FS = trainSVM(labels_train, features_train, params = params)
+  features_test_scale = scaler.transform(features_test)
+  features_test_select = features_test_scale[:,FS]
+  labels_predict = model.predict(features_test_select)
+  confmat_test = metrics.confusion_matrix(labels_test, labels_predict, labels=[NOT_BEAT, BEAT_N, BEAT_S, BEAT_V, BEAT_F, BEAT_Q])
+  
+  if(verbose):
+    print("----  Fold {:d}/{:d} done  ----".format(fold_idx+1,N_folds))
+    #print('Classification result on training set')
+    #print(confmat_train)
+    print('Classification result on test set')
+    print(confmat_test,flush=True)
+  
+  return confmat_test
 
 def CFileInit(file_name = "SVM.h"):
   file = open(file_name,'w')
@@ -230,7 +282,7 @@ def SVMtranslate(model,scaler,FS, file_name = "svm_int.h"):
   
   return 1
 
-def modifLabels(labels, features,reject_NOTBEAT=True,reject_Q=True,merge_F = True,remove_V = False,merge_S = False, verbose = True ):
+def modifLabels(labels, features,subset,reject_NOTBEAT=True,reject_Q=True,merge_F = True,remove_V = False,merge_S = False, verbose = True ):
 
   classes = np.array([NOT_BEAT,BEAT_N,BEAT_S,BEAT_V,BEAT_F,BEAT_Q])
 
@@ -239,6 +291,7 @@ def modifLabels(labels, features,reject_NOTBEAT=True,reject_Q=True,merge_F = Tru
     idx_reject = np.where(labels == NOT_BEAT)
     features = np.delete(features,idx_reject,axis=0)
     labels = np.delete(labels,idx_reject,axis=0)
+    subset = np.delete(subset,idx_reject,axis=0)
     classes = np.delete(classes,np.where(classes==NOT_BEAT))
   
   # Reject Q
@@ -246,6 +299,7 @@ def modifLabels(labels, features,reject_NOTBEAT=True,reject_Q=True,merge_F = Tru
     idx_reject = np.where(labels == BEAT_Q)
     features = np.delete(features,idx_reject,axis=0)
     labels = np.delete(labels,idx_reject,axis=0)
+    subset = np.delete(subset,idx_reject,axis=0)
     classes = np.delete(classes,np.where(classes==BEAT_Q))
     
   # Merge F
@@ -258,6 +312,7 @@ def modifLabels(labels, features,reject_NOTBEAT=True,reject_Q=True,merge_F = Tru
     idx_reject = np.where(labels == BEAT_V)
     features = np.delete(features,idx_reject,axis=0)
     labels = np.delete(labels,idx_reject,axis=0)
+    subset = np.delete(subset,idx_reject,axis=0)
     classes = np.delete(classes,np.where(classes==BEAT_V))
 
   # Merge S
@@ -281,4 +336,4 @@ def modifLabels(labels, features,reject_NOTBEAT=True,reject_Q=True,merge_F = Tru
     print(" - Q\t\t\t : %d" % (np.sum(labels==BEAT_Q)))
     print("####################################################")
     
-  return labels, features
+  return labels, features, subset

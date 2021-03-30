@@ -8,6 +8,7 @@
 # Last update: 06.2020
 #
 
+import os
 import sys
 import getopt
 import matplotlib.pyplot as plt
@@ -26,7 +27,7 @@ def run_framework_single_record(record_ID = 100, save_features=True, append_feat
   params = default_parameters()
   
   # Get signals and annotations from database
-  ECG, time, annotations = database.openRecord(record_ID = record_ID, params=params, N_db = None, showFigures = False, verbose = True, stopwatch=True)
+  ECG, time, annotations = database.openRecord(record_ID = record_ID, params=params, N_db = None, showFigures = True, verbose = True, stopwatch=True)
   
   # Run smart sensor model
   power, detections, features = model.systemModel(ECG,time,params=params)
@@ -47,8 +48,8 @@ def run_framework_all_records(save_features=True):
   
   sets = []
   
-  #sets.append(("train",[101,106,108,109,112,114,115,116,118,119,122,124,201,203,205,207,208,209,215,220,223,230]))
-  sets.append(("test",[100,103,105,111,113,117,121,123,200,202,210,212,213,214,219,221,222,228,231,232,233,234]))
+  sets.append(("train",[101,106,108,109,112,114,115,116,118,119,122,124,201,203,205,207,208,209,215,220,223,230]))
+  #sets.append(("test",[100,103,105,111,113,117,121,123,200,202,210,212,213,214,219,221,222,228,231,232,233,234]))
   
   sen = []
   
@@ -66,10 +67,11 @@ def run_framework_all_records(save_features=True):
         sen = sen+[det_sensitivity]
         ppv = ppv+[det_PPV]
         cm = cm + confmat
-  evaluation.statClass(cm)
+  _,j,_=evaluation.statClass(cm)
   print(sen)
   print(ppv)
   print(cm)
+  print(j)
 
 def run_framework_with_training(): 
   sets = []
@@ -84,14 +86,15 @@ def run_framework_with_training():
   set = sets[0]
   set_name = set[0]
   run_name = 'run_all_'+set_name
-  print("Training with set {:s}...".format(set_name))
-  record_list = set[1]
-  print('Record list : [{}]'.format(', '.join(map(str,record_list))))
-  for count,signalID in enumerate(record_list) :
-    det_sensitivity, det_PPV, matched_labels, confmat,params=run_framework_single_record(record_ID = signalID, ID=count, save_features=True, run_name=run_name,append_features=(count>0))
-  print("Update SVM model")
-  _,features, labels,_=data_IO.read_features(file_name='output/features_'+run_name+'.dat')
-  SVMtrain.updateModel(labels, features, params = params, verbose = True)
+  #print("Training with set {:s}...".format(set_name))
+  #record_list = set[1]
+  #print('Record list : [{}]'.format(', '.join(map(str,record_list))))
+  #for count,signalID in enumerate(record_list) :
+  #  det_sensitivity, det_PPV, matched_labels, confmat,params=run_framework_single_record(record_ID = signalID, ID=count, save_features=True, run_name=run_name,append_features=(count>0))
+  #print("Update SVM model")
+  params = default_parameters()
+  subset,features, labels,_=data_IO.read_features(file_name='output/features_'+run_name+'.dat')
+  SVMtrain.updateModel(labels, features, subset,params = params, verbose = True)
   
   # Test
   sen = []
@@ -111,6 +114,9 @@ def run_framework_with_training():
   print(sen)
   print(ppv)
   print(cm)
+
+def compile_DBE(): 
+  os.system("cd c_lib && python setupECG.py install")
 
 def default_parameters():
   params = {"analog_resample":1000,
@@ -146,15 +152,17 @@ def print_help():
   print(" -a (--all)     >> Run model for all records ")
   print(" -r (--record)  >> Run model for specified record only (overriden by -a) ")
   print(" -t (--train)   >> Run model for all records, training included ")
+  print(" -c (--compile) >> Compile DBE C software ")
   print(" -v (--verbose) >> Increase verbosity ")
 
 if __name__ == "__main__":
   try:
-    opts, args = getopt.getopt(sys.argv[1:],"har:vt",["help","all","record=","verbose","train"])
+    opts, args = getopt.getopt(sys.argv[1:],"har:vtc",["help","all","record=","verbose","train","compile"])
   except getopt.GetoptError:
     print_help()
     sys.exit(2)
   # Default settings
+  compile = False
   single = True
   train = False
   verbose = False
@@ -171,18 +179,23 @@ if __name__ == "__main__":
     elif opt in ("-t", "--train"):
       single = False
       train = True
+    elif opt in ("-c", "--compile"):
+      compile = True
     elif opt in ("-v", "--verbose"):
       verbose = True
   
   # Start
   print_header()
   start_time = time.time()
-  if single:
-    run_framework_single_record(record_ID = record)
-  elif train:
-    run_framework_with_training()
+  if compile:
+    compile_DBE()
   else:
-    run_framework_all_records(save_features=False)
+    if single:
+      run_framework_single_record(record_ID = record)
+    elif train:
+      run_framework_with_training()
+    else:
+      run_framework_all_records(save_features=False)
   end_time = time.time()
   print('Total execution time: {:5.3f} seconds'.format(end_time-start_time))
   plt.show()

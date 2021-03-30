@@ -47,7 +47,7 @@ int16_t* extract_features(void){
     features[FEATURES_COUNT_RR+FEATURES_COUNT_TIME+i] = dwt[FEATURES_DWT_START+i];
   }
   
-  deviation_features((features+FEATURES_COUNT_RR), FEATURES_COUNT_TIME+FEATURES_COUNT_DWT);
+  //deviation_features((features+FEATURES_COUNT_RR), FEATURES_COUNT_TIME+FEATURES_COUNT_DWT);
   
   return features;
 }
