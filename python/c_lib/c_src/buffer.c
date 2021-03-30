@@ -23,6 +23,7 @@ uint16_t* RRBuf;         // Buffer of RR intervals of the previous beats
 
 // Initialization function
 int init_buffers(){
+  int i = 0;
   //printf("Start init\n");
   // Init signal buffer
   signalBuf = (int16_t*)malloc(SIGNAL_BUFFER_LENGTH*sizeof(int16_t));
@@ -36,7 +37,7 @@ int init_buffers(){
   if(beatBufDelay == NULL){
     return 0;
   }
-  for(int i = 0; i<BEAT_BUFFER_LENGTH; i++){
+  for(i = 0; i<BEAT_BUFFER_LENGTH; i++){
     beatBufDelay[i] = 0;
   }
   beatBufCnt = 0;
@@ -46,7 +47,7 @@ int init_buffers(){
   if(RRBuf == NULL){
     return 0;
   }
-  for(int i = 0; i<RR_BUFFER_LENGTH; i++){
+  for(i = 0; i<RR_BUFFER_LENGTH; i++){
     RRBuf[i] = DEFAULT_RR;
   }
   
@@ -68,6 +69,7 @@ void push_sample(int16_t sample){
 int16_t* get_segment(int delay){
   int start;
   int end;
+  int i = 0;
   
   if(delay<SIGNAL_OUTPUT_AFTER){
     printf("Delay must be larger than window size\n");
@@ -85,14 +87,14 @@ int16_t* get_segment(int delay){
   }
   // Copy data
   if(start<end){
-    for(int i = 0; i<SIGNAL_OUTPUT_LENGTH; i++){
+    for(i = 0; i<SIGNAL_OUTPUT_LENGTH; i++){
       signalOutBuf[i] = signalBuf[i+start];
     }
   }else{
-    for(int i = 0; i<(SIGNAL_BUFFER_LENGTH-start); i++){
+    for(i = 0; i<(SIGNAL_BUFFER_LENGTH-start); i++){
       signalOutBuf[i] = signalBuf[i+start];
     }
-    for(int i = 0; i<end; i++){
+    for(i = 0; i<end; i++){
       signalOutBuf[i] = signalBuf[i+SIGNAL_BUFFER_LENGTH-start];
     }
   }
@@ -122,7 +124,8 @@ void add_beat(int16_t delay){
 
 // Add RR interval in queue
 void add_RR(int interval){ 
-  for(int i=RR_BUFFER_LENGTH-1;i>0;i--){
+  int i = 0;
+  for(i=RR_BUFFER_LENGTH-1;i>0;i--){
     RRBuf[i] = RRBuf[i-1];
   }
   RRBuf[0] = interval;
@@ -141,7 +144,8 @@ int get_preRR(){
 // Get local mean of RR interval
 int get_meanRR(){ 
   int mean = 0;
-  for(int i = 0; i<RR_BUFFER_LENGTH; i++){
+  int i = 0;
+  for(i = 0; i<RR_BUFFER_LENGTH; i++){
     mean = mean + RRBuf[i];
   }
   mean = mean>>RR_BUFFER_LENGTH_LOG2;
@@ -152,7 +156,8 @@ int get_meanRR(){
 int get_varRR(int mean){ 
   int var = 0;
   int diff = 0;
-  for(int i = 0; i<RR_BUFFER_LENGTH; i++){
+  int i = 0;
+  for(i = 0; i<RR_BUFFER_LENGTH; i++){
     diff = RRBuf[i]-mean;
     var = var + diff*diff;
   }
@@ -162,7 +167,8 @@ int get_varRR(int mean){
 
 // Increment delays in the beat delay buffer by 1
 void increment_beat_delay(){ 
-  for(int i=0;i<beatBufCnt;i++){
+  int i = 0;
+  for(i=0;i<beatBufCnt;i++){
     beatBufDelay[i] = beatBufDelay[i]+1;
   }
 }
@@ -179,8 +185,9 @@ uint16_t get_beat(){
 
 // Pop oldest beat
 uint16_t pop_beat(){ 
+  int i = 0;
   uint16_t delay = beatBufDelay[0];
-  for(int i=1; i<beatBufCnt; i++){
+  for(i=1; i<beatBufCnt; i++){
     beatBufDelay[i-1] = beatBufDelay[i];
   }
   beatBufCnt = beatBufCnt-1;

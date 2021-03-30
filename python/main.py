@@ -198,4 +198,4 @@ if __name__ == "__main__":
       run_framework_all_records(save_features=False)
   end_time = time.time()
   print('Total execution time: {:5.3f} seconds'.format(end_time-start_time))
-  plt.show()
+  #plt.show()

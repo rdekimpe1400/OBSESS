@@ -19,8 +19,10 @@ feature_data_t scale_data(feature_data_t x, int index);
 // Classifies data point x using the model in svm.h
 int svm_predict( int16_t* x, decision_data_t* dec_values )
 	{
+    int i = 0;
+    int j = 0;
     // Scale
-    for(int i=0; i<n_feat; i++){
+    for(i=0; i<n_feat; i++){
       x[i] = scale_data(x[i],i);
     }
     
@@ -28,9 +30,9 @@ int svm_predict( int16_t* x, decision_data_t* dec_values )
     int p = 0;
     int vote[3] = {0,0,0}; 
     
-		for(int i=0;i<3;i++)
+		for(i=0;i<3;i++)
     {
-			for(int j=i+1;j<3;j++)
+			for(j=i+1;j<3;j++)
 			{
 				decision_data_t sum = 0;
 				int si = start_sv[i];
@@ -76,7 +78,7 @@ int svm_predict( int16_t* x, decision_data_t* dec_values )
     }
     
     int vote_max_idx = 0;
-		for(int i=1;i<3;i++)
+		for(i=1;i<3;i++)
 			if(vote[i] > vote[vote_max_idx])
 				vote_max_idx = i;
       

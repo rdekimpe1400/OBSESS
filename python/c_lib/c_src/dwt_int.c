@@ -155,11 +155,12 @@ int16_t* wavedec(int16_t* input, int inlen, int level, int* outlen){
   int len_tot = dwt_bufferlen(inlen,F_l,F_h,level);
   int levellen_l = inlen;
   int levellen_h = 0;
+  int i = 0;
   int16_t* out_ptr = output_buffer;
   int16_t* in_buffer = malloc(inlen*sizeof(int16_t));
   int16_t* temp_buffer = malloc(inlen*sizeof(int16_t));
   memcpy(in_buffer, input, inlen*sizeof(int16_t));
-  for(int i = 0; i<level; i++){
+  for(i = 0; i<level; i++){
     levellen_h = downsamplingConvolution_h(in_buffer, levellen_l, out_ptr);
     levellen_l = downsamplingConvolution_l(in_buffer, levellen_l, temp_buffer);
     memcpy(in_buffer, temp_buffer, levellen_l*sizeof(int16_t));

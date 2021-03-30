@@ -7,6 +7,8 @@
 from os import path
 import wfdb
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from scipy import interpolate
 import time

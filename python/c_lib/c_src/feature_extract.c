@@ -28,6 +28,7 @@ int16_t* extract_features(void){
   int beat_delay = pop_beat();
   int16_t* signal_segment = get_segment(beat_delay);
   int dwt_outlen;
+  int i = 0;
       
   int16_t* dwt = wavedec(signal_segment+(SIGNAL_OUTPUT_BEFORE-DWT_BEFORE), DWT_LENGTH, DWT_LEVEL, &dwt_outlen);  
   
@@ -39,11 +40,11 @@ int16_t* extract_features(void){
   features[0] = (1000*features[0])/features[2];
   features[1] = (1000*features[1])/features[2];
   
-  for(int i=0;i<FEATURES_COUNT_TIME;i++){
+  for(i=0;i<FEATURES_COUNT_TIME;i++){
     features[FEATURES_COUNT_RR+i] = signal_segment[SIGNAL_OUTPUT_BEFORE+time_idx[i]];
   }
   
-  for(int i=0;i<FEATURES_COUNT_DWT;i++){
+  for(i=0;i<FEATURES_COUNT_DWT;i++){
     features[FEATURES_COUNT_RR+FEATURES_COUNT_TIME+i] = dwt[FEATURES_DWT_START+i];
   }
   
@@ -53,7 +54,8 @@ int16_t* extract_features(void){
 }
       
 int16_t* select_features(int16_t* features_all){
-  for(int i=0; i<n_feat; i++){
+  int i = 0;
+  for(i=0; i<n_feat; i++){
     features_select[i] = features_all[feature_select_idx[i]];
   }
   
@@ -62,24 +64,26 @@ int16_t* select_features(int16_t* features_all){
 
 // Compute local mean of features (using rolling window average and data buffer)
 void smooth_features_init(int length){
+  int i = 0;
+  int j = 0;
   // Init data buffer
   smooth_features_buffer = (int16_t **)malloc(length * sizeof(int16_t *)); 
-  for (int i=0; i<length; i++) {
+  for (i=0; i<length; i++) {
     smooth_features_buffer[i] = (int16_t *)malloc(FEATURES_SMOOTH_COUNT * sizeof(int16_t)); 
-    for(int j=0; j<FEATURES_SMOOTH_COUNT; j++){
+    for(j=0; j<FEATURES_SMOOTH_COUNT; j++){
       smooth_features_buffer[i][j] = 0;
     }
   }
   // Init sum buffer
   smooth_features_sum = (int32_t *)malloc(length * sizeof(int32_t)); 
-  for(int i=0; i<length; i++){
+  for(i=0; i<length; i++){
     smooth_features_sum[i] = 0;
   }
   // Init index
   smooth_idx = 0;
   // Init feature select buffer
   features_select = (int16_t *)malloc(n_feat * sizeof(int16_t)); 
-  for(int i=0; i<n_feat; i++){
+  for(i=0; i<n_feat; i++){
     features_select[i] = 0;
   }
 }
@@ -87,7 +91,8 @@ void smooth_features_init(int length){
 // Compute deviation from local average
 int16_t* deviation_features(int16_t* input_features, int length){
   int16_t out_feature;
-  for (int i=0; i<length; i++) {
+  int i = 0;
+  for (i=0; i<length; i++) {
     // Compute output
     out_feature = smooth_features_sum[i]>>FEATURES_SMOOTH_COUNT_LOG;
     // Update sum and data buffer
