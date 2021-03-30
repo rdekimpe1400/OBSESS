@@ -3,3 +3,7 @@
 /python/c_lib/build/
 *.pyc
 *.dat
+/python/doc/*.aux
+/python/doc/*.log
+/python/doc/*.gz
+/python/doc/*.out
