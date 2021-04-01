@@ -52,7 +52,7 @@ int16_t* extract_features(void){
   
   return features;
 }
-      
+
 int16_t* select_features(int16_t* features_all){
   int i = 0;
   for(i=0; i<n_feat; i++){

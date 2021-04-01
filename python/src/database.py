@@ -85,6 +85,7 @@ def openRecord(record_ID = 100, params = {}, N_db = None, showFigures = False, v
     axs[2].set(ylabel="Annotations",xlabel="Time[s]",ylim=[0.5,5.5])
     axs[2].set_yticks(np.arange(1,6))
     axs[2].set_yticklabels(['N','S','V','F','Q'])
+    plt.savefig('plots/data.png')
   
   t_plot = time.time()
   

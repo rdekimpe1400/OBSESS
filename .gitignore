@@ -2,8 +2,11 @@
 /python/mitdb/
 /python/c_lib/build/
 *.pyc
+*.log
 /python/data/*.dat
 /python/doc/*.aux
 /python/doc/*.log
 /python/doc/*.gz
 /python/doc/*.out
+/python/plots/*.png
+/python/output/*.dat

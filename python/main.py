@@ -21,16 +21,16 @@ from src import data_IO
 from src.SVM import SVMtrain
 import time
 
-def run_framework_single_record(record_ID = 100, save_features=True, append_features=False, ID=0, run_name='run_single'): 
+def run_framework_single_record(record_ID = 100, save_features=True, save_signal=False, append_features=False, ID=0, run_name='run_single', showFigures = False): 
   
   # Set parameters
   params = default_parameters()
   
   # Get signals and annotations from database
-  ECG, time, annotations = database.openRecord(record_ID = record_ID, params=params, N_db = None, showFigures = True, verbose = True, stopwatch=True)
+  ECG, time, annotations = database.openRecord(record_ID = record_ID, params=params, N_db = None, showFigures = showFigures, verbose = True, stopwatch=True)
   
   # Run smart sensor model
-  power, detections, features = model.systemModel(ECG,time,params=params)
+  ECG_dig, power, detections, features = model.systemModel(ECG,time,params=params, showFigures = showFigures)
   
   # Comparison of output with annotations
   det_sensitivity, det_PPV, matched_labels, confmat = evaluation.compareAnnotations(annotations, detections, time, ECG,showFigure = False)
@@ -41,6 +41,10 @@ def run_framework_single_record(record_ID = 100, save_features=True, append_feat
   # Save features to file
   if save_features:
     data_IO.save_features(detections, features,matched_labels,subset=ID,file_name= 'output/features_'+run_name+'.dat',append=append_features)
+  
+  # Save signal to file
+  if save_signal:
+    data_IO.save_signal(ECG_dig,file_name= 'output/data_'+run_name+'.dat')
     
   return det_sensitivity, det_PPV, matched_labels, confmat, params
 
@@ -49,7 +53,7 @@ def run_framework_all_records(save_features=True):
   sets = []
   
   sets.append(("train",[101,106,108,109,112,114,115,116,118,119,122,124,201,203,205,207,208,209,215,220,223,230]))
-  #sets.append(("test",[100,103,105,111,113,117,121,123,200,202,210,212,213,214,219,221,222,228,231,232,233,234]))
+  sets.append(("test",[100,103,105,111,113,117,121,123,200,202,210,212,213,214,219,221,222,228,231,232,233,234]))
   
   sen = []
   
@@ -123,7 +127,7 @@ def default_parameters():
             "IA_TF_file":'./src/AFE/AFE_data/IA_dist.dat',
             "IA_DCout": 0.6,
             "IA_thermal_noise" : 0.095e-6,
-            "IA_flicker_noise_corner" : 1,
+            "IA_flicker_noise_corner" : None, #1,
             "ADC_Fs": 200,
             "ADC_VCO_TF_file":'./src/AFE/AFE_data/VCO_TF.dat',
             "ADC_thermal_noise" : 0.01e-3,
@@ -191,7 +195,7 @@ if __name__ == "__main__":
     compile_DBE()
   else:
     if single:
-      run_framework_single_record(record_ID = record)
+      run_framework_single_record(record_ID = record, showFigures = True, save_signal=True)
     elif train:
       run_framework_with_training()
     else:

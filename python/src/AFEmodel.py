@@ -22,7 +22,7 @@ from src.AFE import noise
 # Outputs:
 # - ECG_dig: vector of digitized ECG samples
 # - time_dig: sampling time vector (same as input time_dig if provided)
-def analogFrontEndModel(ECG,time_analog, params = {}, IA_TF = None, VCO_TF=None, showFigures = False, stopwatch = False):
+def analogFrontEndModel(ECG,time_analog, params = {}, IA_TF = None, VCO_TF=None, showFigures = False, stopwatch = False, channel = 0):
   
   t_start = time.time()
   
@@ -47,21 +47,24 @@ def analogFrontEndModel(ECG,time_analog, params = {}, IA_TF = None, VCO_TF=None,
   ECG = ECG + IA_noise
   
   # Plot noise
-  if False:
-    fx = np.fft.rfftfreq(n_analog,dt_analog)
-    fx[0] = fx[1]
-    fx = fx**(-1/2.)
-    s = np.sqrt(np.mean(fx**2))
-    flick = fx*params['IA_thermal_noise']/(params['IA_flicker_noise_corner']**(-1/2))
+  if showFigures:
     f, Pxx_den_therm = signal.periodogram(IA_thermal_noise, f_analog)
-    f, Pxx_den_flick = signal.periodogram(IA_flicker_noise, f_analog)
     f, Pxx_den_total = signal.periodogram(IA_noise, f_analog)
     fig, axs = plt.subplots(2)
     fig.suptitle("IA input-referred noise")
     axs[0].loglog(f, np.sqrt(Pxx_den_therm),label="Thermal (sim)")
     axs[0].loglog(f, np.ones_like(Pxx_den_therm)*params['IA_thermal_noise'],label="Thermal (ideal)")
-    axs[0].loglog(f, np.sqrt(Pxx_den_flick),label="Flicker (sim)")
-    axs[0].loglog(np.fft.rfftfreq(n_analog,dt_analog),flick,label="Flicker (ideal)")
+    
+    fx = np.fft.rfftfreq(n_analog,dt_analog)
+    fx[0] = fx[1]
+    fx = fx**(-1/2.)
+    s = np.sqrt(np.mean(fx**2))
+    if params['IA_flicker_noise_corner'] is not None:
+      flick = fx*params['IA_thermal_noise']/(params['IA_flicker_noise_corner']**(-1/2))
+      f, Pxx_den_flick = signal.periodogram(IA_flicker_noise, f_analog)
+      axs[0].loglog(f, np.sqrt(Pxx_den_flick),label="Flicker (sim)")
+      axs[0].loglog(np.fft.rfftfreq(n_analog,dt_analog),flick,label="Flicker (ideal)")
+    
     axs[0].set_ylim([1e-10, 1e-5])
     axs[0].set_xlabel('frequency [Hz]')
     axs[0].set_ylabel('PSD [V/sqrt(Hz)]')
@@ -70,6 +73,7 @@ def analogFrontEndModel(ECG,time_analog, params = {}, IA_TF = None, VCO_TF=None,
     axs[1].set_xlabel('frequency [Hz]')
     axs[1].set_ylabel('PSD [V/sqrt(Hz)]')
     axs[1].set_ylim([1e-10, 1e-5])
+    plt.savefig('plots/IANoise_'+str(channel)+'.png')
   
   # Apply IA model
   IA_Vin_diff = ECG   
@@ -111,6 +115,7 @@ def analogFrontEndModel(ECG,time_analog, params = {}, IA_TF = None, VCO_TF=None,
     axs[2].legend(loc='upper right')
     axs[3].plot(time_dig,ADC_out)
     axs[3].set(ylabel="Differential ADC output [V]")
+    plt.savefig('plots/AFE_'+str(channel)+'.png')
   
   t_plot = time.time()
   

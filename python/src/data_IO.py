@@ -52,3 +52,16 @@ def read_features(file_name="output/features.dat"):
   features = np.array(features)
   labels = np.array(labels)
   return subset,features, labels,time
+
+# Write signal data to file
+def save_signal(signal,file_name="output/data.dat"):
+  N_sig,N_data = np.shape(signal)
+  print(N_sig)
+  file = open(file_name,'w')
+  for i in range(0,N_sig) : 
+    for j in range(0,N_data) : 
+      file.write('{:d},'.format(signal[i][j]))
+    file.write('\n')
+  file.close()
+  
+  return
