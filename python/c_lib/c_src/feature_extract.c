@@ -25,7 +25,7 @@ int16_t **smooth_features_buffer; // Buffer
 int32_t *smooth_features_sum; // Buffer 
 int smooth_idx;
 
-const int time_idx[FEATURES_COUNT_TIME] = {-36,-33,-30,-27,-24,-21,-18,-15,-12,-9,-6,-3,0,3,6,9,12,15,18,30,40,50,60,70,80};
+const int time_idx[FEATURES_COUNT_TIME] = {-39,-36,-33,-30,-27,-24,-21,-18,-15,-12,-9,-6,-3,0,2,4,6,8,10,12,14,16,18,20,30,40,50,60,70,80};
 
 features_t* new_features(){
   features_t* feat_struct = (features_t*) malloc(sizeof(features_t));
@@ -73,14 +73,18 @@ int extract_features_RR(beat_t* beat){
 }
 
 int extract_features_time(beat_t* beat){
+  int i;
 #ifdef DEBUG_PRINT
   printf("Extract time\n");
 #endif
-  memcpy(beat->features->time,&(beat->signal[SIGNAL_SEGMENT_BEFORE-100]),FEATURES_COUNT_TIME*sizeof(int16_t));
+  
+  for(i=0;i<FEATURES_COUNT_TIME; i++){
+    beat->features->time[i] = beat->signal[SIGNAL_SEGMENT_BEFORE+time_idx[i]];
+  }
+  //memcpy(beat->features->time,&(beat->signal[SIGNAL_SEGMENT_BEFORE-10]),FEATURES_COUNT_TIME*sizeof(int16_t));
   
 #ifdef DEBUG_PRINT
   printf("    = ");
-  int i;
   for(i = 0; i<FEATURES_COUNT_TIME; i++){
     printf("%d, ",beat->features->time[i]);
   }
