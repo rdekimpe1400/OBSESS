@@ -4,8 +4,8 @@
 //
 //**********************************************
 
-#ifndef SVM_H_
-#define SVM_H_
+#ifndef SVM_MODEL_H_
+#define SVM_MODEL_H_
 
 typedef int16_t feature_data_t;
 typedef int32_t feature_dist_data_t;
@@ -379,4 +379,4 @@ const feature_data_t sv[344][20] = {
 {1420, -1617, -2557, -2, 856, -1604, -2344, 319, -260, 3451, -187, 100, 7058, -171, 9, -143, 302, 333, 30, -1542}
 };
 
-#endif //SVM_H_
+#endif //SVM_MODEL_H_

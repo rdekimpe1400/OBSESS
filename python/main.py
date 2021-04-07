@@ -27,7 +27,7 @@ def run_framework_single_record(record_ID = 100, save_features=True, save_signal
   params = default_parameters()
   
   # Get signals and annotations from database
-  ECG, time, annotations = database.openRecord(record_ID = record_ID, params=params, N_db = None, showFigures = showFigures, verbose = True, stopwatch=True)
+  ECG, time, annotations = database.openRecord(record_ID = record_ID, params=params, N_db = 100000, showFigures = showFigures, verbose = True, stopwatch=True)
   
   # Run smart sensor model
   ECG_dig, power, detections, features = model.systemModel(ECG,time,params=params, showFigures = showFigures)
@@ -195,7 +195,7 @@ if __name__ == "__main__":
     compile_DBE()
   else:
     if single:
-      run_framework_single_record(record_ID = record, showFigures = True, save_signal=True)
+      run_framework_single_record(record_ID = record, showFigures = False, save_signal=True)
     elif train:
       run_framework_with_training()
     else:

@@ -5,6 +5,7 @@
 #include "ecg.h" 
 #include "feature_extract.h" 
 #include "svm.h" 
+#include "svm_model.h" 
 
 PyObject *Create_Output_Dict(int16_t* features, int length, int delay, int class)
   { 
@@ -58,7 +59,7 @@ static PyObject* compute_features(PyObject* self, PyObject* args)
       return NULL;
     
     features=ECG_wrapper(sample,&delay,&output);
-    
+     
     PyObject* out_o;
     if(output>0){
       out_o = Create_Output_Dict(features, FEATURES_COUNT, delay, output);

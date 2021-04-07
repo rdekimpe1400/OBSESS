@@ -9,10 +9,11 @@ REVISED:	06/2020
 #include <stdio.h>
 #include <string.h>
 #include "ecg.h"
-#include "buffer.h"
+#include "signal_buffer.h"
+#include "beat_buffer.h"
 #include "qrsdet.h"
 #include "dwt_int.h"
-#include "feature_extract.h"
+#include "feature_extract.h" 
 #include "svm.h"
 
 int16_t* ECG_wrapper( int sample, int* delay, int* output){
@@ -37,20 +38,21 @@ int16_t* ECG_wrapper( int sample, int* delay, int* output){
   
   // If beat is detected, add it in beat buffer
   if(detection_delay){
-    detection_delay = detection_delay - ((HPBUFFER_LGTH+LPBUFFER_LGTH)>>1);//add filter delay
+    detection_delay = detection_delay;// - ((HPBUFFER_LGTH+LPBUFFER_LGTH)>>1);//add filter delay
     add_beat(detection_delay);
   }
   
   // If an old beat can be classified (post-RR interval available, post-QRS window signal available), process it
-  if(get_beat_number()>1){
-    if(get_beat()>SIGNAL_OUTPUT_AFTER){
-      int32_t dec_values[3];
-      *delay = get_beat();
-      features = extract_features();
-      features_select = select_features(features);
-      *output=svm_predict(features_select, dec_values );
-    }
+  if(is_beat_ready()){
+    int32_t dec_values[3];
+    features = buffer_get_features();
+    *delay = pop_beat();
+    //features = extract_features();
+    //features_select = select_features(features);  
+    //*output=svm_predict(features_select, dec_values );
+    *output = 1; 
   }
+  
   
   // Increment beat delays in buffer
   increment_beat_delay();
@@ -62,14 +64,17 @@ void ECG_init(){
   int16_t dummy;
   QRSDet( 0, 0, 1 );
   QRSFilter( 0, 1, &dummy );
-  init_buffers();
-  int dwt_len = dwt_bufferinit(DWT_LENGTH, DWT_LEVEL);
-  smooth_features_init(FEATURES_COUNT_TIME+FEATURES_COUNT_DWT);
+  init_signal_buffer();
+  init_beat_buffer();
+  init_features_buffer();
+  //int dwt_len = dwt_bufferinit(DWT_LENGTH, DWT_LEVEL);
+  //smooth_features_init(FEATURES_COUNT_TIME+FEATURES_COUNT_DWT); 
   return;
 }
 
 void ECG_close(){
-  close_buffers();
+  close_beat_buffer();
+  close_signal_buffer();
   return;
 }
 
