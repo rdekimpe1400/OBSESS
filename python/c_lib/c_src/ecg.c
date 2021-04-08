@@ -12,7 +12,6 @@ REVISED:	06/2020
 #include "signal_buffer.h"
 #include "beat_buffer.h"
 #include "qrsdet.h"
-#include "dwt_int.h"
 #include "feature_extract.h" 
 #include "svm.h"
 
@@ -22,7 +21,7 @@ int16_t* ECG_wrapper( int sample, int* delay, int* output){
   int16_t ecg_filt = 0;
   int detection_delay = 0;
   int16_t* features = 0;
-  int16_t* features_select = 0;
+  int16_t* features_select = 0; 
   
   *output = 0;
   *delay = 0;

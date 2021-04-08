@@ -113,6 +113,7 @@ int16_t* features;
   beat_set_signal(beatBuf[0], get_segment(beatBuf[0]->delay));
   extract_features_RR(beatBuf[0]);
   extract_features_time(beatBuf[0]);
+  extract_features_DWT(beatBuf[0]);
   print_beat(beatBuf[0]);
   features = get_features(beatBuf[0]->features);
   

@@ -9,17 +9,21 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 #include "dwt.h"
+#include "dwt_filter.h"
+
+int buffer_length[MAX_LEVELS+1];
 
 // Applies LP FIR filter and downsamples by 2
-int downsamplingConvolution_l( double* input, int inlen, double* output ){
+int downsamplingConvolution_l( int16_t* input, int inlen, int16_t* output ){
   int outlen = (inlen + F_l - 1)>>1;
   
   int i = 1;
   int o = 0;
   while((i<F_l) & (i<inlen)){
-    double sum = 0;
+    int32_t sum = 0;
     int j=0;
     while(j<i){
       sum = sum + filter_l[j]*input[i-j];
@@ -29,25 +33,25 @@ int downsamplingConvolution_l( double* input, int inlen, double* output ){
       sum = sum + filter_l[j]*input[0];
       j = j+1;
     }
-    output[o] = sum;
+    output[o] = sum>>shift_dwt;
     i = i+2;
     o = o+1;
   }
   
   while(i < inlen){
-    double sum = 0;
+    int32_t sum = 0;
     int j=0;
     while(j < F_l){
       sum = sum + filter_l[j]*input[i-j];
       j = j+1;
     }
-    output[o] = sum;
+    output[o] = sum>>shift_dwt;
     i = i+2;
     o = o+1;
   }
   
   while(i < (inlen+F_l-1)){
-    double sum = 0;
+    int32_t sum = 0;
     int j=0;
     while((i-j) >= inlen){
       sum = sum + filter_l[j]*input[inlen-1];
@@ -57,7 +61,7 @@ int downsamplingConvolution_l( double* input, int inlen, double* output ){
       sum = sum + filter_l[j]*input[i-j];
       j = j+1;
     }
-    output[o] = sum;
+    output[o] = sum>>shift_dwt;
     i = i+2;
     o = o+1;
   }
@@ -65,13 +69,13 @@ int downsamplingConvolution_l( double* input, int inlen, double* output ){
 }
 
 // Applies HP FIR filter and downsamples by 2
-int downsamplingConvolution_h( double* input, int inlen, double* output ){
+int downsamplingConvolution_h( int16_t* input, int inlen, int16_t* output ){
   int outlen = (inlen + F_h - 1)>>1;
   
   int i = 1;
   int o = 0;
   while((i<F_h) & (i<inlen)){
-    double sum = 0;
+    int32_t sum = 0;
     int j=0;
     while(j<i){
       sum = sum + filter_h[j]*input[i-j];
@@ -81,25 +85,25 @@ int downsamplingConvolution_h( double* input, int inlen, double* output ){
       sum = sum + filter_h[j]*input[0];
       j = j+1;
     }
-    output[o] = sum;
+    output[o] = sum>>shift_dwt;
     i = i+2;
     o = o+1;
   }
   
   while(i < inlen){
-    double sum = 0;
+    int32_t sum = 0;
     int j=0;
     while(j < F_h){
       sum = sum + filter_h[j]*input[i-j];
       j = j+1;
     }
-    output[o] = sum;
+    output[o] = sum>>shift_dwt;
     i = i+2;
     o = o+1;
   }
   
   while(i < (inlen+F_h-1)){
-    double sum = 0;
+    int32_t sum = 0;
     int j=0;
     while((i-j) >= inlen){
       sum = sum + filter_h[j]*input[inlen-1];
@@ -109,40 +113,49 @@ int downsamplingConvolution_h( double* input, int inlen, double* output ){
       sum = sum + filter_h[j]*input[i-j];
       j = j+1;
     }
-    output[o] = sum;
+    output[o] = sum>>shift_dwt;
     i = i+2;
     o = o+1;
   }
   return outlen;
 }
 
-int dwtbufferlen(int N, int Fl, int Fh, int level){
+int dwt_bufferlen(int N, int level){
   int len = 0;
   int levellen = N;
-  for(int i = 0; i<level; i++){
-    len = len + ((levellen+Fh-1)>>1);
-    levellen = ((levellen+Fl-1)>>1);
+  int i;
+  
+  for(i = 0; i<level; i++){
+    len = len + ((levellen+F_h-1)>>1);
+    buffer_length[i] = (levellen+F_h-1)>>1;
+    levellen = ((levellen+F_l-1)>>1);
   }
   len = len + levellen;
+  buffer_length[i] = levellen;
   return len;
-} 
+}
 
-double* wavedec(double* input, int inlen, int level, int* outlen){
-  int len_tot = dwtbufferlen(inlen,F_l,F_h,level);
+// Get level lengths (as in wavedec output)
+// needs to be run after dwt_bufferlen
+int* dwt_bufferlength(){ 
+  return buffer_length;
+}
+
+int16_t* wavedec(int16_t* input, int inlen, int level, int16_t* output_buffer){
   int levellen_l = inlen;
   int levellen_h = 0;
-  double* output = malloc(len_tot*sizeof(double));
-  double* out_ptr = output;
-  double* in_buffer = malloc(inlen*sizeof(double));
-  double* temp_buffer = malloc(inlen*sizeof(double));
-  memcpy(in_buffer, input, inlen*sizeof(double));
-  for(int i = 0; i<level; i++){
+  int i = 0;
+  int16_t* out_ptr = output_buffer;
+  int16_t* in_buffer = malloc(inlen*sizeof(int16_t));
+  int16_t* temp_buffer = malloc(inlen*sizeof(int16_t));
+  memcpy(in_buffer, input, inlen*sizeof(int16_t));
+  for(i = 0; i<level; i++){
     levellen_h = downsamplingConvolution_h(in_buffer, levellen_l, out_ptr);
     levellen_l = downsamplingConvolution_l(in_buffer, levellen_l, temp_buffer);
-    memcpy(in_buffer, temp_buffer, levellen_l*sizeof(double));
+    memcpy(in_buffer, temp_buffer, levellen_l*sizeof(int16_t));
     out_ptr = out_ptr+levellen_h;
   }
-  memcpy(out_ptr, temp_buffer, levellen_l*sizeof(double));
+  memcpy(out_ptr, temp_buffer, levellen_l*sizeof(int16_t));
   //for(int j = 0; j<len_tot; j++){
   //  printf("%f, ",output[j]);
   //}
@@ -151,7 +164,6 @@ double* wavedec(double* input, int inlen, int level, int* outlen){
   free(in_buffer);
   free(temp_buffer);
   
-  *outlen = len_tot;
-  
-  return output;
+  return output_buffer;
 }
+

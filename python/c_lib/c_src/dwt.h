@@ -7,16 +7,13 @@
 #ifndef DWT_H_
 #define DWT_H_
 
+#include <stdint.h>
 // DWT model data
 
 #define MAX_LEVELS  5
 
-// Wavelet type : db4
-const int F_l = 8;
-const int F_h = 8;
-const double filter_l[8] = {-0.010597401785069032, 0.0328830116668852, 0.030841381835560764, -0.18703481171909309, -0.027983769416859854, 0.6308807679298589, 0.7148465705529157, 0.2303778133088965, };
-const double filter_h[8] = {-0.2303778133088965, 0.7148465705529157, -0.6308807679298589, -0.027983769416859854, 0.18703481171909309, 0.030841381835560764, -0.0328830116668852, -0.010597401785069032, };
-
-double* wavedec(double* input, int inlen, int level, int* outlen);
+int16_t* wavedec(int16_t* input, int inlen, int level, int16_t* output_buffer);
+int dwt_bufferlen(int N, int level);
+int* dwt_bufferlength(void);
 
 #endif //DWT_H_

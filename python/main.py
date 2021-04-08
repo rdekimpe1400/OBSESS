@@ -27,7 +27,7 @@ def run_framework_single_record(record_ID = 100, save_features=True, save_signal
   params = default_parameters()
   
   # Get signals and annotations from database
-  ECG, time, annotations = database.openRecord(record_ID = record_ID, params=params, N_db = 100000, showFigures = showFigures, verbose = True, stopwatch=True)
+  ECG, time, annotations = database.openRecord(record_ID = record_ID, params=params, N_db = None, showFigures = showFigures, verbose = True, stopwatch=True)
   
   # Run smart sensor model
   ECG_dig, power, detections, features = model.systemModel(ECG,time,params=params, showFigures = showFigures)

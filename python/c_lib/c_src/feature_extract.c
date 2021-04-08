@@ -9,16 +9,16 @@ REVISED:	06/2020
 #include <stdio.h>
 #include <string.h>
 
+#include "dwt.h"
 #include "beat.h"
 #include "signal_buffer.h"
-#include "dwt_int.h"
 #include "svm.h"
 #include "feature_extract.h"
 
 #define DEBUG_PRINT
 
 // Global variables
-int16_t features[FEATURES_COUNT];   // Output feature buffer
+int16_t *features_buffer;   // Output feature buffer
 int16_t *features_select;   // Output selected feature buffer
 
 int16_t **smooth_features_buffer; // Buffer 
@@ -28,37 +28,51 @@ int smooth_idx;
 const int time_idx[FEATURES_COUNT_TIME] = {-39,-36,-33,-30,-27,-24,-21,-18,-15,-12,-9,-6,-3,0,2,4,6,8,10,12,14,16,18,20,30,40,50,60,70,80};
 
 features_t* new_features(){
-  features_t* feat_struct = (features_t*) malloc(sizeof(features_t));
+  features_t* features = (features_t*) malloc(sizeof(features_t));
   
-  feat_struct->prev_RR = DEFAULT_RR;
-  feat_struct->next_RR = DEFAULT_RR;
-  feat_struct->avrg_RR = DEFAULT_RR;
-  feat_struct->time = (int16_t*) malloc(FEATURES_COUNT_TIME*sizeof(int16_t));
+  features->prev_RR = DEFAULT_RR;
+  features->next_RR = DEFAULT_RR;
+  features->avrg_RR = DEFAULT_RR;
+  features->time_len = SIGNAL_SEGMENT_LENGTH;
+  features->time = (int16_t*) malloc(features->time_len*sizeof(int16_t));
+  features->dwt_len = dwt_bufferlen(DWT_LENGTH, DWT_LEVEL);
+  features->dwt = (int16_t*) malloc(features->dwt_len*sizeof(int16_t));
   
-	return feat_struct;
+	return features;
 }
 
-int16_t* get_features(features_t* feat_struct){
-  features[0] = feat_struct->prev_RR;
-  features[1] = feat_struct->next_RR;
-  features[2] = feat_struct->avrg_RR;
+int init_features_buffer(){   
+  int i = 0;
+  features_buffer = (int16_t*) malloc(FEATURES_COUNT*sizeof(int16_t));
+  for(i=0; i<FEATURES_COUNT; i++){
+    features_buffer[i]=0;
+  }
+  return 0;
+}
+
+int16_t* get_features(features_t* features){
+  //features_buffer[0] = features->prev_RR;
+  //features_buffer[1] = features->next_RR;
+  //features_buffer[2] = features->avrg_RR;
+  //
+  //memcpy(&(features_buffer[3]),features->time,FEATURES_COUNT_TIME*sizeof(int16_t));
   
-  memcpy(&(features[3]),feat_struct->time,FEATURES_COUNT_TIME*sizeof(int16_t));
+  select_features(features, features_buffer);
   
 #ifdef DEBUG_PRINT
   printf("Features = ");
   int i;
   for(i = 0; i<FEATURES_COUNT; i++){
-    printf("%d, ",features[i]);
+    printf("%d, ",features_buffer[i]);
   }
   printf("\n");
 #endif
-  return features;
+  return features_buffer;
 }
 
 int extract_features_RR(beat_t* beat){
 #ifdef DEBUG_PRINT
-  printf("Extract RR\n");
+  printf("Extract RR (%d) \n", FEATURES_COUNT_RR);
 #endif
   int16_t new_RR = beat->delay - beat->next_beat->delay;
   
@@ -75,17 +89,14 @@ int extract_features_RR(beat_t* beat){
 int extract_features_time(beat_t* beat){
   int i;
 #ifdef DEBUG_PRINT
-  printf("Extract time\n");
+  printf("Extract time (%d) \n", SIGNAL_SEGMENT_LENGTH);
 #endif
-  
-  for(i=0;i<FEATURES_COUNT_TIME; i++){
-    beat->features->time[i] = beat->signal[SIGNAL_SEGMENT_BEFORE+time_idx[i]];
-  }
-  //memcpy(beat->features->time,&(beat->signal[SIGNAL_SEGMENT_BEFORE-10]),FEATURES_COUNT_TIME*sizeof(int16_t));
+
+  memcpy(beat->features->time, beat->signal, SIGNAL_SEGMENT_LENGTH*sizeof(int16_t));
   
 #ifdef DEBUG_PRINT
   printf("    = ");
-  for(i = 0; i<FEATURES_COUNT_TIME; i++){
+  for(i = 0; i<SIGNAL_SEGMENT_LENGTH; i++){
     printf("%d, ",beat->features->time[i]);
   }
   printf("\n");
@@ -93,25 +104,45 @@ int extract_features_time(beat_t* beat){
   return 0;
 }
 
-int16_t* select_features(int16_t* features_all){
-  int i = 0;
-  for(i=0; i<n_feat; i++){
-    features_select[i] = features_all[feature_select_idx[i]];
-  }
+int extract_features_DWT(beat_t* beat){
+  int i;
+#ifdef DEBUG_PRINT
+  printf("Extract DWT (%d) \n", beat->features->dwt_len);
+#endif
   
-  return features_select;
-}
-
-int init_features_buffer(){   
-  int i = 0;
-  for(i=0; i<FEATURES_COUNT; i++){
-    features[i]=0;
+  wavedec(&(beat->signal[SIGNAL_SEGMENT_BEFORE-DWT_BEFORE]), DWT_LENGTH, DWT_LEVEL, beat->features->dwt);
+  
+#ifdef DEBUG_PRINT
+  printf("    = ");
+  for(i = 0; i<FEATURES_COUNT_TIME; i++){
+    printf("%d, ",beat->features->dwt[i]);
   }
+  printf("\n");
+#endif
   return 0;
 }
 
+int select_features(features_t* features, int16_t* features_out){
+  int i;
+  
+  features_out[0] = features->prev_RR;
+  features_out[1] = features->next_RR;
+  features_out[2] = features->avrg_RR;
+  
+  for(i=0; i<FEATURES_COUNT_TIME; i++){
+    features_out[FEATURES_COUNT_RR+i] = features->time[SIGNAL_SEGMENT_BEFORE+time_idx[i]];
+  }
+  
+  for(i=0; i<FEATURES_COUNT_DWT; i++){
+    features_out[FEATURES_COUNT_RR+FEATURES_COUNT_TIME+i] = features->dwt[FEATURES_DWT_START+i];
+  }
+  
+  return FEATURES_COUNT;
+}
+
+
 int16_t* get_features_buffer(){
-  return features;
+  return features_buffer;
 }
 
 // Compute local mean of features (using rolling window average and data buffer)
@@ -163,8 +194,9 @@ int16_t* deviation_features(int16_t* input_features, int length){
   return input_features;
 }
 
-int delete_features(features_t* feat_struct){
-  free(feat_struct->time);
-  free(feat_struct);
+int delete_features(features_t* features){
+  free(features->time);
+  free(features->dwt);
+  free(features);
   return 0;
 }
