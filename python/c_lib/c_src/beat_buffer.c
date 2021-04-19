@@ -14,7 +14,7 @@ REVISED:	06/2020
 #include "beat_buffer.h"
 #include "feature_extract.h"
 
-#define DEBUG_PRINT
+//#define DEBUG_PRINT
 
 // Global variables
 beat_t** beatBuf;  // Delay (in samples) from the unclassificed beats
@@ -99,7 +99,7 @@ uint16_t pop_beat(){
 }
 
 // Closing function
-int close_beat_buffer(){
+int close_beat_buffer(){ 
   free(beatBuf);
   return 1;
 }
@@ -111,11 +111,14 @@ int16_t* features;
   printf("Get beat\n");
 #endif
   beat_set_signal(beatBuf[0], get_segment(beatBuf[0]->delay));
+  beat_set_gold_label(beatBuf[0], get_gold_label(beatBuf[0]->delay));
   extract_features_RR(beatBuf[0]);
   extract_features_time(beatBuf[0]);
   extract_features_DWT(beatBuf[0]);
   print_beat(beatBuf[0]);
-  features = get_features(beatBuf[0]->features);
+  features = get_features(beatBuf[0]);
+  
+  update_feature_template(beatBuf[0]);
   
   return features;
 }

@@ -24,7 +24,7 @@
 #define FEATURES_SMOOTH_COUNT   8
 #define FEATURES_SMOOTH_COUNT_LOG   3
 
-#define FEATURES_RR_SMOOTH_DECAY_LOG   4
+#define FEATURES_SMOOTH_DECAY_LOG   4
 
 #define DWT_LEVEL 4
 #define DWT_BEFORE 60
@@ -36,16 +36,17 @@
 
 // Function declaration
 features_t* new_features(void);
-int16_t* get_features(features_t* features);
+int16_t* get_features(beat_t* beat);
 int extract_features_RR(beat_t* beat);
 int extract_features_time(beat_t* beat);
 int extract_features_DWT(beat_t* beat);
-int select_features(features_t* features, int16_t* features_out);
+int gather_features(beat_t* beat, int16_t* features_out);
 void smooth_features_init(int length);
 int16_t* deviation_features(int16_t* input_features, int length);
 int16_t* get_features_buffer(void);
 int init_features_buffer(void);
 int delete_features(features_t* features);
+int update_feature_template(beat_t* beat);
 
 #endif //FEATURES_H_
 

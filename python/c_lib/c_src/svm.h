@@ -8,8 +8,8 @@
 #define SVM_H_
 
 // Declaration
-int svm_predict( int16_t* x, int32_t* decision );
-
+int svm_predict( int16_t* x);
+ 
 extern const int n_feat;
 extern const int n_sv;
 extern const int feature_select_idx[];

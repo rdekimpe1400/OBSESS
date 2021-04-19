@@ -1,6 +1,7 @@
 /python/env/
 /python/mitdb/
 /python/c_lib/build/
+/python/c_lib/c_src/old/
 *.pyc
 *.log
 /python/data/*.dat
@@ -10,3 +11,4 @@
 /python/doc/*.out
 /python/plots/*.png
 /python/output/*.dat
+/python/*.sav

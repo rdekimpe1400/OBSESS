@@ -18,7 +18,7 @@ def save_features(detections, features,matched_labels,subset=0,file_name="output
   #  for i in range(0,N_feat) :
   #    file.write(','+names[i])
   #  file.write(',\n')
-  for i in range(20,N_beat) : # drop 20 first beats
+  for i in range(0,N_beat) : 
     file.write('{:d},{:3.2f},{:d}'.format(subset,det_time[i],matched_labels[i]))
     #file.write('{:d},{:d}'.format(subset,matched_labels[i]))
     for j in range(0,N_feat) :

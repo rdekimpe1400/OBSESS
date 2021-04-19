@@ -4,7 +4,7 @@ import numpy as np
 
 def annotMap(wfdbAnnot):
   N = len(wfdbAnnot)
-  refAnnot = np.zeros(N)
+  refAnnot = np.zeros(N).astype(int)
   switch = {
     'N' : BEAT_N,
     'L' : BEAT_N,

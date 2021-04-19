@@ -13,7 +13,7 @@ REVISED:	06/2020
 #include "beat.h"
 #include "feature_extract.h" 
 
-#define DEBUG_PRINT
+//#define DEBUG_PRINT
 
 // Global variables
 
@@ -54,6 +54,11 @@ int beat_set_signal(beat_t* beat, int16_t* segment){
 	return 0;
 }
 
+int beat_set_gold_label(beat_t* beat, int gold_label){
+  beat->gold_label = gold_label;
+	return 0;
+}
+
 // Get local variables
 int16_t beat_get_delay(beat_t* beat){
 	return beat->delay;
@@ -69,6 +74,10 @@ beat_t* beat_get_next_beat(beat_t* beat){
 
 int16_t* beat_get_signal(beat_t* beat){
 	return beat->signal;
+}
+
+int beat_get_gold_label(beat_t* beat){
+	return beat->gold_label;
 }
 
 // Increment delay

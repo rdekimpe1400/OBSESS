@@ -15,13 +15,12 @@ REVISED:	06/2020
 #include "feature_extract.h" 
 #include "svm.h"
 
-int16_t* ECG_wrapper( int sample, int* delay, int* output){
+int16_t* ECG_wrapper( int sample, int label_gold, int* delay, int* output){
   int ecg_transform = 0;
   int ecg = sample;
   int16_t ecg_filt = 0;
   int detection_delay = 0;
   int16_t* features = 0;
-  int16_t* features_select = 0; 
   
   *output = 0;
   *delay = 0;
@@ -30,7 +29,7 @@ int16_t* ECG_wrapper( int sample, int* delay, int* output){
   ecg_transform=QRSFilter(ecg, 0,&ecg_filt );
   
   // Put new sample in signal buffer
-  push_sample(ecg_filt);
+  push_sample(ecg_filt, label_gold);
   
   // QRS detection
   detection_delay=QRSDet(ecg, ecg_transform,0 ) ; 
@@ -43,13 +42,11 @@ int16_t* ECG_wrapper( int sample, int* delay, int* output){
   
   // If an old beat can be classified (post-RR interval available, post-QRS window signal available), process it
   if(is_beat_ready()){
-    int32_t dec_values[3];
     features = buffer_get_features();
     *delay = pop_beat();
     //features = extract_features();
     //features_select = select_features(features);  
-    //*output=svm_predict(features_select, dec_values );
-    *output = 1; 
+    *output=svm_predict(features ); 
   }
   
   

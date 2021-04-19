@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from defines import *
+from src.defines import *
 import numpy as np
 from sklearn import metrics
 
@@ -153,7 +153,7 @@ def evalStats_3(confmat, verbose = True):
     print("Ijk index\t\t : {:6.2f} %".format(jk))
     print("####################################################",flush=True)
   
-  return jk,j,k
+  return j
 
 def evalStats_2(confmat, verbose = True):
   

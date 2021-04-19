@@ -15,7 +15,7 @@ REVISED:	06/2020
 #include "svm.h"
 #include "feature_extract.h"
 
-#define DEBUG_PRINT
+//#define DEBUG_PRINT
 
 // Global variables
 int16_t *features_buffer;   // Output feature buffer
@@ -27,6 +27,9 @@ int smooth_idx;
 
 const int time_idx[FEATURES_COUNT_TIME] = {-39,-36,-33,-30,-27,-24,-21,-18,-15,-12,-9,-6,-3,0,2,4,6,8,10,12,14,16,18,20,30,40,50,60,70,80};
 
+int16_t* dwt_template_N;
+int template_init;
+
 features_t* new_features(){
   features_t* features = (features_t*) malloc(sizeof(features_t));
   
@@ -37,6 +40,7 @@ features_t* new_features(){
   features->time = (int16_t*) malloc(features->time_len*sizeof(int16_t));
   features->dwt_len = dwt_bufferlen(DWT_LENGTH, DWT_LEVEL);
   features->dwt = (int16_t*) malloc(features->dwt_len*sizeof(int16_t));
+  features->dwt_diff = (int16_t*) malloc(features->dwt_len*sizeof(int16_t));
   
 	return features;
 }
@@ -47,17 +51,20 @@ int init_features_buffer(){
   for(i=0; i<FEATURES_COUNT; i++){
     features_buffer[i]=0;
   }
+  
+  int dwt_len = dwt_bufferlen(DWT_LENGTH, DWT_LEVEL);
+  dwt_template_N = (int16_t*) malloc(dwt_len*sizeof(int16_t));
+  for(i=0; i<dwt_len; i++){
+    dwt_template_N[i]=0;
+  }
+  template_init = 0;
+  
   return 0;
 }
 
-int16_t* get_features(features_t* features){
-  //features_buffer[0] = features->prev_RR;
-  //features_buffer[1] = features->next_RR;
-  //features_buffer[2] = features->avrg_RR;
-  //
-  //memcpy(&(features_buffer[3]),features->time,FEATURES_COUNT_TIME*sizeof(int16_t));
+int16_t* get_features(beat_t* beat){
   
-  select_features(features, features_buffer);
+  gather_features(beat, features_buffer);
   
 #ifdef DEBUG_PRINT
   printf("Features = ");
@@ -81,13 +88,12 @@ int extract_features_RR(beat_t* beat){
   beat->next_beat->features->prev_RR = new_RR;
   
   // Past average RR interval (single pole IIR)
-  beat->next_beat->features->avrg_RR = beat->features->avrg_RR - (beat->features->avrg_RR >> FEATURES_RR_SMOOTH_DECAY_LOG) + (new_RR >> FEATURES_RR_SMOOTH_DECAY_LOG);
+  beat->next_beat->features->avrg_RR = beat->features->avrg_RR - (beat->features->avrg_RR >> FEATURES_SMOOTH_DECAY_LOG) + (new_RR >> FEATURES_SMOOTH_DECAY_LOG);
   
   return 0;
 }
 
 int extract_features_time(beat_t* beat){
-  int i;
 #ifdef DEBUG_PRINT
   printf("Extract time (%d) \n", SIGNAL_SEGMENT_LENGTH);
 #endif
@@ -95,9 +101,10 @@ int extract_features_time(beat_t* beat){
   memcpy(beat->features->time, beat->signal, SIGNAL_SEGMENT_LENGTH*sizeof(int16_t));
   
 #ifdef DEBUG_PRINT
+  int j;
   printf("    = ");
-  for(i = 0; i<SIGNAL_SEGMENT_LENGTH; i++){
-    printf("%d, ",beat->features->time[i]);
+  for(j = 0; j<SIGNAL_SEGMENT_LENGTH; j++){
+    printf("%d, ",beat->features->time[j]);
   }
   printf("\n");
 #endif
@@ -112,34 +119,55 @@ int extract_features_DWT(beat_t* beat){
   
   wavedec(&(beat->signal[SIGNAL_SEGMENT_BEFORE-DWT_BEFORE]), DWT_LENGTH, DWT_LEVEL, beat->features->dwt);
   
+  for(i=0; i<beat->features->dwt_len ; i++){
+    beat->features->dwt_diff[i] = beat->features->dwt[i] - dwt_template_N[i];
+  }
+  
 #ifdef DEBUG_PRINT
+  int j;
   printf("    = ");
-  for(i = 0; i<FEATURES_COUNT_TIME; i++){
-    printf("%d, ",beat->features->dwt[i]);
+  for(j = 0; j<FEATURES_COUNT_TIME; j++){
+    printf("%d, ",beat->features->dwt[j]);
   }
   printf("\n");
 #endif
   return 0;
 }
 
-int select_features(features_t* features, int16_t* features_out){
+int gather_features(beat_t* beat, int16_t* features_out){
   int i;
   
-  features_out[0] = features->prev_RR;
-  features_out[1] = features->next_RR;
-  features_out[2] = features->avrg_RR;
+  features_out[0] = beat->features->prev_RR;
+  features_out[1] = beat->features->next_RR;
+  features_out[2] = beat->features->avrg_RR;
   
   for(i=0; i<FEATURES_COUNT_TIME; i++){
-    features_out[FEATURES_COUNT_RR+i] = features->time[SIGNAL_SEGMENT_BEFORE+time_idx[i]];
+    features_out[FEATURES_COUNT_RR+i] = beat->features->time[SIGNAL_SEGMENT_BEFORE+time_idx[i]];
   }
   
   for(i=0; i<FEATURES_COUNT_DWT; i++){
-    features_out[FEATURES_COUNT_RR+FEATURES_COUNT_TIME+i] = features->dwt[FEATURES_DWT_START+i];
+    features_out[FEATURES_COUNT_RR+FEATURES_COUNT_TIME+i] = beat->features->dwt_diff[FEATURES_DWT_START+i];
   }
   
   return FEATURES_COUNT;
 }
 
+int update_feature_template(beat_t* beat){ 
+  int i;
+  if((beat->gold_label==1)||(beat->gold_label==2)){
+    if(template_init){
+      for(i=0; i<beat->features->dwt_len; i++){
+        dwt_template_N[i] = dwt_template_N[i] - (dwt_template_N[i] >> FEATURES_SMOOTH_DECAY_LOG) + (beat->features->dwt[i] >> FEATURES_SMOOTH_DECAY_LOG);
+      }
+    }else{
+      for(i=0; i<beat->features->dwt_len; i++){
+        dwt_template_N[i] = beat->features->dwt[i];
+      }
+      template_init = 1;
+    }
+  }
+  return 0;
+}
 
 int16_t* get_features_buffer(){
   return features_buffer;

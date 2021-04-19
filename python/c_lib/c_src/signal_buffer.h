@@ -20,7 +20,8 @@
 // Function declaration
 int init_signal_buffer(void);
 int close_signal_buffer(void);
-void push_sample(int16_t sample);
+void push_sample(int16_t sample, int label_gold);
 int16_t* get_segment(int delay);
+int get_gold_label(int delay);
 
 #endif //SIGBUF_H_

@@ -5,7 +5,9 @@
 #include "ecg.h" 
 #include "feature_extract.h" 
 #include "svm.h" 
-#include "svm_model.h" 
+
+extern const int n_sv;
+extern const int n_feat;
 
 PyObject *Create_Output_Dict(int16_t* features, int length, int delay, int class)
   { 
@@ -42,7 +44,7 @@ static PyObject* process_sample(PyObject* self, PyObject* args)
     if (!PyArg_ParseTuple(args, "i", &sample))
       return NULL;
     
-    ECG_wrapper(sample,&delay,&output);
+    ECG_wrapper(sample,0,&delay,&output);
     
     return PyLong_FromLong(output);
 }
@@ -51,14 +53,14 @@ static PyObject* process_sample(PyObject* self, PyObject* args)
 static PyObject* compute_features(PyObject* self, PyObject* args)
 {
     int sample;
+    int label_gold;
     int delay;
     int output;
     int16_t* features;
     
-    if (!PyArg_ParseTuple(args, "i", &sample))
+    if (!PyArg_ParseTuple(args, "ii", &sample,&label_gold))
       return NULL;
-    
-    features=ECG_wrapper(sample,&delay,&output);
+    features=ECG_wrapper(sample,label_gold,&delay,&output); 
      
     PyObject* out_o;
     if(output>0){

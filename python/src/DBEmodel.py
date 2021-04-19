@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import ECGlib
 
 #
-def digitalBackEndModel(ECG,time, params = {}, showFigures = False):
+def digitalBackEndModel(ECG,time, annotations, params = {}, showFigures = False):
   
   N = len(time)
   
@@ -22,15 +22,17 @@ def digitalBackEndModel(ECG,time, params = {}, showFigures = False):
   
   det_time = []
   det_labels = []
+  ann_time = annotations['time']
+  ann_labels = annotations['label']
   features = []
   # Run sample processing
   for i in range(0,N):
-    output=ECGlib.compute_features(np.right_shift(ECG[0][i],3))
+    output=ECGlib.compute_features(np.right_shift(ECG[0][i],3),ann_labels[(np.abs(ann_time - time[i])).argmin()])
     if output is not None:
       det_time = det_time+[time[i-output['delay']]]
       det_labels = det_labels + [output['class']]
       features = features + [output['features']]
-      
+   
   # Close 
   ECGlib.finish()
   

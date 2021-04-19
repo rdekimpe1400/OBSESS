@@ -7,7 +7,7 @@ from src import AFEmodel
 from src import DBEmodel
 
 #
-def systemModel(ECG,time, params = {}, verbose = False, showFigures = False):
+def systemModel(ECG,time, annotations, params = {}, verbose = False, showFigures = False):
   # Run AFE model
   # Input is the signal from the database with time vector
   # Output is the digitized signal with time vector after AFE non-idealities
@@ -19,7 +19,7 @@ def systemModel(ECG,time, params = {}, verbose = False, showFigures = False):
   # Run DBE model
   # Input is the digitized signal with time vector
   # Output is the label of detected beats with corresponding time 
-  labels, time_det, features, powerDBE = DBEmodel.digitalBackEndModel(ECG_dig,time_dig, params = params, showFigures = showFigures)
+  labels, time_det, features, powerDBE = DBEmodel.digitalBackEndModel(ECG_dig,time_dig, annotations, params = params, showFigures = showFigures)
   
   detect = {'label': labels,'time':time_det} 
   

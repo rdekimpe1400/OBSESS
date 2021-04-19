@@ -10,79 +10,57 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include "svm_model.h"
 #include "svm.h"
 
 uint32_t exp_custom(feature_dist_data_t x, int shift);
 feature_data_t scale_data(feature_data_t x, int index);
+feature_data_t* feature_select(feature_data_t* x, feature_data_t* feature_vector); 
 
 // Classifies data point x using the model in svm.h
-int svm_predict( int16_t* x, decision_data_t* dec_values )
+int svm_predict( int16_t* x)
 	{
+    feature_data_t* feature_vector;
     int i = 0;
-    int j = 0;
+    
+    feature_vector = (feature_data_t*) malloc(n_feat*sizeof(feature_data_t));
+    
+    // Select features
+    feature_vector = feature_select(x, feature_vector); 
+    
     // Scale
     for(i=0; i<n_feat; i++){
-      x[i] = scale_data(x[i],i);
+      feature_vector[i] = scale_data(feature_vector[i],i);
     }
     
     // Compute SVM
-    int p = 0;
-    int vote[3] = {0,0,0}; 
+    int out = 0; 
     
-		for(i=0;i<3;i++)
-    {
-			for(j=i+1;j<3;j++)
-			{
-				decision_data_t sum = 0;
-				int si = start_sv[i];
-				int sj = start_sv[j];
-				int ci = n_sv_class[i];
-				int cj =n_sv_class[j];
+		decision_data_t sum = 0;
 
-				int k;
-        int f;
-				decision_data_t *coef1 = sv_coef[j-1];
-				decision_data_t *coef2 = sv_coef[i];
+		int k;
+    int f;
         
-				for(k=si;k<(si+ci);k++) 
-        {
-          feature_dist_data_t dist = 0;  
-          for(f=0;f<n_feat;f++)
-          {
-            feature_dist_data_t diff = x[f] - sv[k][f]; 
-            dist += (diff*diff)>>feature_acc_shift;
-          }
-          sum += ((int64_t)coef1[k] * exp_custom(dist/gam_inv,(feature_shift<<1)-feature_acc_shift))>>kernel_acc_shift;
-        }
-				for(k=sj;k<(sj+cj);k++)
-				{
-          feature_dist_data_t dist = 0;
-          for(f=0;f<n_feat;f++) 
-          {
-            feature_dist_data_t diff = x[f] - sv[k][f];
-            dist += (diff*diff)>>feature_acc_shift;
-          }
-					sum += ((int64_t)coef2[k] * exp_custom(dist/gam_inv,(feature_shift<<1)-feature_acc_shift))>>kernel_acc_shift;
-        }
-				sum += rho[p];
-				dec_values[p] = sum;
-        
-        if(dec_values[p] > 0)
-					++vote[i];
-				else
-					++vote[j];
-        
-        p++;
-			}
+		for(k=0;k<n_sv;k++) 
+    {
+      feature_dist_data_t dist = 0;  
+      for(f=0;f<n_feat;f++)
+      {
+        feature_dist_data_t diff = feature_vector[f] - sv[k][f]; 
+        dist += (diff*diff)>>feature_acc_shift;
+      }
+      sum += ((int64_t)sv_coef[k] * exp_custom(dist/gam_inv,(feature_shift<<1)-feature_acc_shift))>>kernel_acc_shift;
     }
+    sum += rho;
+        
+    if(sum > 0)
+			out = 3;
+		else
+			out = 1;
     
-    int vote_max_idx = 0;
-		for(i=1;i<3;i++)
-			if(vote[i] > vote[vote_max_idx])
-				vote_max_idx = i;
-      
-		return vote_max_idx+1;
+    free(feature_vector);
+		return out;
 	}
 
 uint32_t exp_custom(feature_dist_data_t x, int input_shift){
@@ -113,4 +91,12 @@ uint32_t exp_custom(feature_dist_data_t x, int input_shift){
 feature_data_t scale_data(feature_data_t x, int index){
   feature_data_t output = ((x-scale_mean[index])*scale_std[index])>>scale_shift;
   return output;
+}
+
+feature_data_t* feature_select(feature_data_t* x, feature_data_t* feature_vector){
+  int i = 0;
+  for(i=0;i<n_feat;i++){
+    feature_vector[i] = x[feature_select_idx[i]];
+  }
+  return feature_vector;
 }

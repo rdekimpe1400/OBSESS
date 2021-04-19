@@ -21,6 +21,7 @@ typedef struct features_t
   
   int dwt_len;
   int16_t* dwt;
+  int16_t* dwt_diff;
   
 } features_t;
 
@@ -32,6 +33,8 @@ typedef struct beat_t
 	struct beat_t* next_beat;
   
   int16_t* signal;
+  
+  int gold_label;
   
 	features_t* features;
   

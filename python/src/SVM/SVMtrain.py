@@ -11,21 +11,25 @@ from sklearn import svm
 from sklearn import metrics
 
 from joblib import Parallel, delayed
+from joblib import dump, load
 
 from src import evaluation
+from src.SVM import FE
 from src.defines import *
+from src.SVM import ECGclassification
+from src.SVM import ECGClassEval
 
-def updateModel(labels, features, subset, params = {}, verbose = True, cross_val = True):
+def updateModel(params = {}, verbose = True):
   C_file = params['SVM_model_file']
   
   CFileInit(file_name = C_file) 
   
   # Train model
-  labels, features,subset = modifLabels(labels, features,subset) # Keep relevant classes only 
-  if cross_val:
-    crossValSVM(labels, features, subset, params=params)
-    exit()
-  model, scaler, FS = trainSVM(labels, features, params=params)
+  model = load('clf.sav')
+  params = load('params.sav')
+  scaler = load('scaler.sav')
+  
+  FS = params['FS']
   
   if verbose:
     print("--------------------------------------------------------")
@@ -48,72 +52,32 @@ def updateModel(labels, features, subset, params = {}, verbose = True, cross_val
   SVMtranslate(model,scaler,FS, file_name = C_file)
   
   CFileClose(file_name = C_file)
+  return
 
-def trainSVM(labels, features, params = {}):
-  scaler = StandardScaler() # Scale
-  features_scale=scaler.fit_transform(features)
+def trainSVM():
 
-  FS = params['SVM_feature_select']
-  features_select = features_scale[:,FS] #Select
+  labels_train, features_train, subset_train, labels_test, features_test, subset_test = open_features(train_file = "output/features_run_all_train.dat", test_file = "output/features_run_all_test.dat")
   
-  model_unpruned = svm.SVC(kernel='rbf', class_weight = 'balanced', verbose=False, C = params['SVM_C'], gamma=params['SVM_gamma']/len(FS), decision_function_shape='ovo') # SVM training
-  model_unpruned.fit(features_select,labels)
-  
-  labels_predict = model_unpruned.predict(features_select)
-  
-  keep = np.where(labels_predict==labels)
-  
-  features_reduce = features_select[keep]
-  labels_reduce = labels[keep]
+  scaler = StandardScaler()
+  features_train=scaler.fit_transform(features_train)
+  features_test=scaler.transform(features_test)
 
-  model = svm.SVC(kernel='rbf', gamma= params['SVM_gamma']/len(FS), C=100000)
-  model.fit(features_reduce,labels_reduce)
-  
-  return model_unpruned, scaler, FS
+  FE_preselect = np.array([0,1,2,17,18,19,20,21,22,23,24,25,26,27,28,29,30,114,115,116,117,118,119,120,140,141,142,143,144,145,146,147,148,152,153,154,155,156])
+  features_train = features_train[:,FE_preselect]
+  features_test = features_test[:,FE_preselect]
 
-def crossValSVM(labels, features, subset, params = {}):
-  N_rec = int(np.max(subset)+1)
-  rec_idx = list(np.random.permutation(N_rec))
 
-  folds = np.reshape(rec_idx, (-1,2))
-  N_folds = len(folds)
-  print(" ******* Cross-validation of classifier : {:d} folds ******* ".format(N_folds))
- 
-  result = Parallel(n_jobs=12)(delayed(trainAndTestSVM_CVfold)(features, folds, fold_idx, subset, labels, N_folds = N_folds, params=params, verbose = True) for fold_idx in range(0,N_folds)) 
+  SV_params = {'kernel':'rbf','C':0.1, 'gamma':0.1, 'FS':np.array([27, 29, 13, 18, 25, 16, 32, 22, 37, 35]), 'C_2':0.1, 'gamma_2':0.1, 'FS_2':None, 'class_weight':'balanced','type':'VvX'}
 
-  evaluation.statClass(np.sum(result,axis=0))
+  cm = ECGclassification.train_and_test(features_train, labels_train, features_test, labels_test, SV_params, prune=True, verbose=True, save_clf = True)
+  j_prune= ECGClassEval.evalStats_3(cm)
 
-def trainAndTestSVM_CVfold(features, folds, fold_idx, subset, labels, N_folds = 0, params = {}, verbose = False) :
-  test_rec = folds[fold_idx]
-  train_rec = np.concatenate(np.delete(folds, fold_idx,axis=0))
+  SV_params['FS'] = FE_preselect[SV_params['FS']]
+  dump(scaler,'scaler.sav')
+  dump(SV_params,'params.sav')
   
-  test_idx = np.isin(subset,test_rec)
-  train_idx = np.isin(subset,train_rec)
-  
-  if(verbose):
-    print("----  Fold {:d}/{:d} started  ----".format(fold_idx+1,N_folds))
-    print("Test record [{:s}] ({:d} beats);\t train records[{:s}] ({:d} beats)".format(', '.join(map(str,test_rec)),np.sum(test_idx),', '.join(map(str,train_rec)),np.sum(train_idx)))
-  
-  features_train = features[train_idx]
-  labels_train = labels[train_idx]
-  features_test = features[test_idx]
-  labels_test = labels[test_idx]
-  
-  # Train classifier
-  model, scaler, FS = trainSVM(labels_train, features_train, params = params)
-  features_test_scale = scaler.transform(features_test)
-  features_test_select = features_test_scale[:,FS]
-  labels_predict = model.predict(features_test_select)
-  confmat_test = metrics.confusion_matrix(labels_test, labels_predict, labels=[NOT_BEAT, BEAT_N, BEAT_S, BEAT_V, BEAT_F, BEAT_Q])
-  
-  if(verbose):
-    print("----  Fold {:d}/{:d} done  ----".format(fold_idx+1,N_folds))
-    #print('Classification result on training set')
-    #print(confmat_train)
-    print('Classification result on test set')
-    print(confmat_test,flush=True)
-  
-  return confmat_test
+  return
+
 
 def CFileInit(file_name = "SVM.h"):
   file = open(file_name,'w')
@@ -122,14 +86,14 @@ def CFileInit(file_name = "SVM.h"):
   file.write('//  SVM model data\n')
   file.write('//\n')
   file.write('//**********************************************\n\n')
-  file.write('#ifndef SVM_H_\n')
-  file.write('#define SVM_H_\n\n')
+  file.write('#ifndef SVM_MOD_H_\n')
+  file.write('#define SVM_MOD_H_\n\n')
   
   return 1
 
 def CFileClose(file_name = "SVM.h"):
   file = open(file_name,'a')
-  file.write('\n#endif //SVM_H_\n')
+  file.write('\n#endif //SVM_MOD_H_\n')
   file.close()
   
   return 1
@@ -245,26 +209,21 @@ def SVMtranslate(model,scaler,FS, file_name = "svm_int.h"):
   
   file.write('const int kernel_acc_shift = {};\n'.format(int(kernel_acc_shift)))
   
-  file.write('const int n_sv_class[3] = {{{}, {}, {}}};\n'.format(model.n_support_[0], model.n_support_[1], model.n_support_[2]))
+  file.write('const int n_sv_class[2] = {{{}, {}}};\n'.format(model.n_support_[0], model.n_support_[1]))
   
   file.write('const int n_sv = {};\n'.format(n_sv))
   
-  file.write('const int start_sv[3] = {{{}, {}, {}}};\n'.format(0, model.n_support_[0], model.n_support_[0]+model.n_support_[1]))
+  file.write('const int start_sv[2] = {{{}, {}}};\n'.format(0, model.n_support_[0]))
   
   interp_int = np.round(model.intercept_*(2**(exp_shift+coef_shift-kernel_acc_shift))).astype(int)
-  file.write('const decision_data_t rho[3] = {{{}, {}, {}}};\n'.format(interp_int[0], interp_int[1], interp_int[2]))
+  file.write('const decision_data_t rho = {};\n'.format(interp_int[0]))
   
-  file.write('const decision_data_t sv_coef[2][{:d}] = {{{{'.format(n_sv))
+  file.write('const decision_data_t sv_coef[{:d}] = {{'.format(n_sv))
   for i in range(0,n_sv):
     file.write("{}".format(int(model.dual_coef_[0,i]*(2**coef_shift))))
     if i<(n_sv-1):
       file.write(", ")
-  file.write("}, {")
-  for i in range(0,n_sv):
-    file.write("{}".format(int(model.dual_coef_[1,i]*(2**coef_shift))))
-    if i<(n_sv-1):
-      file.write(", ")
-  file.write("}};\n")
+  file.write("};\n")
   
   file.write('const feature_data_t sv[{:d}][{:d}] = {{\n'.format(n_sv,n_feat))
   for i in range(0,n_sv):
@@ -282,45 +241,53 @@ def SVMtranslate(model,scaler,FS, file_name = "svm_int.h"):
   
   return 1
 
-def modifLabels(labels, features,subset,reject_NOTBEAT=True,reject_Q=True,merge_F = True,remove_V = False,merge_S = False, verbose = True ):
+def open_features(train_file = "output/train.dat", test_file = "output/test.dat", reject_Q=True,merge_F = True,remove_V = False,merge_S = False, verbose = True ):
 
-  classes = np.array([NOT_BEAT,BEAT_N,BEAT_S,BEAT_V,BEAT_F,BEAT_Q])
+  subset_train, features_train, labels_train,names = FE.readFE(file_name = train_file,read_header=False)
+  subset_test, features_test, labels_test,_ = FE.readFE(file_name = test_file,read_header=False)
 
+  classes = np.array([BEAT_N,BEAT_S,BEAT_V,BEAT_F,BEAT_Q])
 
-  if reject_NOTBEAT :
-    idx_reject = np.where(labels == NOT_BEAT)
-    features = np.delete(features,idx_reject,axis=0)
-    labels = np.delete(labels,idx_reject,axis=0)
-    subset = np.delete(subset,idx_reject,axis=0)
-    classes = np.delete(classes,np.where(classes==NOT_BEAT))
-  
   # Reject Q
   if reject_Q :
-    idx_reject = np.where(labels == BEAT_Q)
-    features = np.delete(features,idx_reject,axis=0)
-    labels = np.delete(labels,idx_reject,axis=0)
-    subset = np.delete(subset,idx_reject,axis=0)
+    idx_reject = np.where(labels_train == BEAT_Q)
+    features_train = np.delete(features_train,idx_reject,axis=0)
+    labels_train = np.delete(labels_train,idx_reject,axis=0)
+    subset_train = np.delete(subset_train,idx_reject,axis=0)
+    idx_reject = np.where(labels_test == BEAT_Q)
+    features_test = np.delete(features_test,idx_reject,axis=0)
+    labels_test = np.delete(labels_test,idx_reject,axis=0)
+    subset_test = np.delete(subset_test,idx_reject,axis=0)
     classes = np.delete(classes,np.where(classes==BEAT_Q))
     
   # Merge F
   if merge_F :
-    labels[labels == BEAT_F] = BEAT_V
+    labels_train[labels_train == BEAT_F] = BEAT_V
+    labels_test[labels_test == BEAT_F] = BEAT_V
     classes = np.delete(classes,np.where(classes==BEAT_F))
 
   # Remove V
   if remove_V :
-    idx_reject = np.where(labels == BEAT_V)
-    features = np.delete(features,idx_reject,axis=0)
-    labels = np.delete(labels,idx_reject,axis=0)
-    subset = np.delete(subset,idx_reject,axis=0)
+    idx_reject = np.where(labels_train == BEAT_V)
+    features_train = np.delete(features_train,idx_reject,axis=0)
+    labels_train = np.delete(labels_train,idx_reject,axis=0)
+    subset_train = np.delete(subset_train,idx_reject,axis=0)
+    idx_reject = np.where(labels_test == BEAT_V)
+    features_test = np.delete(features_test,idx_reject,axis=0)
+    labels_test = np.delete(labels_test,idx_reject,axis=0)
+    subset_test = np.delete(subset_test,idx_reject,axis=0)
     classes = np.delete(classes,np.where(classes==BEAT_V))
 
   # Merge S
   if merge_S :
-    labels[labels == BEAT_S] = BEAT_N
+    labels_train[labels_train == BEAT_S] = BEAT_V
+    labels_test[labels_test == BEAT_S] = BEAT_V
     classes = np.delete(classes,np.where(classes==BEAT_S))
     
-  N_beat_train,N_feat = np.shape(features)
+  N_beat_train,N_feat = np.shape(features_train)
+  N_beat_test,_ = np.shape(features_test)
+  N_rec_train = int(np.max(subset_train)+1)
+  N_rec_test = int(np.max(subset_test)+1)
 
   if verbose :
     print("####################################################")
@@ -329,11 +296,24 @@ def modifLabels(labels, features,subset,reject_NOTBEAT=True,reject_Q=True,merge_
     print("Features : {:d}".format(N_feat))
     print("")
     print("Training set : {:d}".format(N_beat_train))
-    print(" - N\t\t\t : %d" % (np.sum(labels==BEAT_N)))
-    print(" - S\t\t\t : %d" % (np.sum(labels==BEAT_S)))
-    print(" - V\t\t\t : %d" % (np.sum(labels==BEAT_V)))
-    print(" - F\t\t\t : %d" % (np.sum(labels==BEAT_F)))
-    print(" - Q\t\t\t : %d" % (np.sum(labels==BEAT_Q)))
+    print(" - N\t\t\t : %d" % (np.sum(labels_train==BEAT_N)))
+    print(" - S\t\t\t : %d" % (np.sum(labels_train==BEAT_S)))
+    print(" - V\t\t\t : %d" % (np.sum(labels_train==BEAT_V)))
+    print(" - F\t\t\t : %d" % (np.sum(labels_train==BEAT_F)))
+    print(" - Q\t\t\t : %d" % (np.sum(labels_train==BEAT_Q)))
+    print(" - X\t\t\t : %d" % (np.sum(labels_train==NOT_BEAT)))
+    print("")
+    print("Number of training records : {:d}".format(N_rec_train))
+    print("")
+    print("Training set : {:d}".format(N_beat_test))
+    print(" - N\t\t\t : %d" % (np.sum(labels_test==BEAT_N)))
+    print(" - S\t\t\t : %d" % (np.sum(labels_test==BEAT_S)))
+    print(" - V\t\t\t : %d" % (np.sum(labels_test==BEAT_V)))
+    print(" - F\t\t\t : %d" % (np.sum(labels_test==BEAT_F)))
+    print(" - Q\t\t\t : %d" % (np.sum(labels_test==BEAT_Q)))
+    print(" - X\t\t\t : %d" % (np.sum(labels_test==NOT_BEAT)))
+    print("")
+    print("Number of test records : {:d}".format(N_rec_test))
     print("####################################################")
     
-  return labels, features, subset
+  return labels_train, features_train, subset_train, labels_test, features_test, subset_test
