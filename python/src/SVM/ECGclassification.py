@@ -61,7 +61,7 @@ def train(features_train, labels_train, params, prune = False, verbose = False, 
   
   return clf
 
-def train_and_test(features_train, labels_train, features_test, labels_test, params, prune = False, verbose = False, save_clf = False) :
+def train_and_test(features_train, labels_train, features_test, labels_test, params, prune = False, verbose = False, save_clf_file = None) :
   # Select features
   if not (np.array(params['FS_2']).any() == None):
     features_train2 = features_train[:,params['FS_2']]
@@ -95,8 +95,8 @@ def train_and_test(features_train, labels_train, features_test, labels_test, par
   
   # Train and test classifier
   clf = train(features_train_type, labels_train_type, params, prune = prune, verbose = verbose)
-  if save_clf:
-    dump(clf,'clf.sav')
+  if not save_clf_file is None:
+    dump(clf,save_clf_file)
   
   # If hier, train second classifier
   if params['type']=='hier':

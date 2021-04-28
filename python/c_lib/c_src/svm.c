@@ -15,51 +15,85 @@
 #include "svm.h"
 
 uint32_t exp_custom(feature_dist_data_t x, int shift);
-feature_data_t scale_data(feature_data_t x, int index);
-feature_data_t* feature_select(feature_data_t* x, feature_data_t* feature_vector); 
+feature_data_t scale_data_V(feature_data_t x, int index);
+feature_data_t* feature_select_V(feature_data_t* x, feature_data_t* feature_vector); 
+feature_data_t scale_data_S(feature_data_t x, int index);
+feature_data_t* feature_select_S(feature_data_t* x, feature_data_t* feature_vector); 
 
 // Classifies data point x using the model in svm.h
 int svm_predict( int16_t* x)
 	{
-    feature_data_t* feature_vector;
     int i = 0;
+    int out = 0; 
+		int k;
+    int f;
     
-    feature_vector = (feature_data_t*) malloc(n_feat*sizeof(feature_data_t));
+    // --- NS v V --- //
+    feature_data_t* feature_vector_V;
+    feature_vector_V = (feature_data_t*) malloc(n_feat_V*sizeof(feature_data_t));
     
     // Select features
-    feature_vector = feature_select(x, feature_vector); 
+    feature_vector_V = feature_select_V(x, feature_vector_V); 
     
     // Scale
-    for(i=0; i<n_feat; i++){
-      feature_vector[i] = scale_data(feature_vector[i],i);
+    for(i=0; i<n_feat_V; i++){
+      feature_vector_V[i] = scale_data_V(feature_vector_V[i],i);
     }
     
     // Compute SVM
-    int out = 0; 
-    
-		decision_data_t sum = 0;
+		decision_data_t sum_V = 0;
 
-		int k;
-    int f;
-        
-		for(k=0;k<n_sv;k++) 
+		for(k=0;k<n_sv_V;k++) 
     {
       feature_dist_data_t dist = 0;  
-      for(f=0;f<n_feat;f++)
+      for(f=0;f<n_feat_V;f++)
       {
-        feature_dist_data_t diff = feature_vector[f] - sv[k][f]; 
+        feature_dist_data_t diff = feature_vector_V[f] - sv_V[k][f]; 
         dist += (diff*diff)>>feature_acc_shift;
       }
-      sum += ((int64_t)sv_coef[k] * exp_custom(dist/gam_inv,(feature_shift<<1)-feature_acc_shift))>>kernel_acc_shift;
+      sum_V += ((int64_t)sv_coef_V[k] * exp_custom(dist/gam_inv_V,(feature_shift<<1)-feature_acc_shift))>>kernel_acc_shift;
     }
-    sum += rho;
-        
-    if(sum > 0)
-			out = 3;
-		else
-			out = 1;
+    sum_V += rho_V;
     
-    free(feature_vector);
+    // --- N v S --- //
+    feature_data_t* feature_vector_S;
+    feature_vector_S = (feature_data_t*) malloc(n_feat_S*sizeof(feature_data_t));
+    
+    // Select features
+    feature_vector_S = feature_select_S(x, feature_vector_S); 
+    
+    
+    // Scale
+    for(i=0; i<n_feat_S; i++){
+      feature_vector_S[i] = scale_data_S(feature_vector_S[i],i);
+    }
+    
+    // Compute SVM    
+		decision_data_t sum_S = 0;
+        
+		for(k=0;k<n_sv_S;k++) 
+    {
+      feature_dist_data_t dist = 0;  
+      for(f=0;f<n_feat_S;f++)
+      {
+        feature_dist_data_t diff = feature_vector_S[f] - sv_S[k][f]; 
+        dist += (diff*diff)>>feature_acc_shift;
+      }
+      sum_S += ((int64_t)sv_coef_S[k] * exp_custom(dist/gam_inv_S,(feature_shift<<1)-feature_acc_shift))>>kernel_acc_shift;
+    }
+    sum_S += rho_S;
+    
+    if(sum_V > 0)
+			out = 3;
+		else{
+      if(sum_S>0)
+        out = 1;
+      else
+        out = 2;
+    }
+    
+    free(feature_vector_S);
+    free(feature_vector_V);
 		return out;
 	}
 
@@ -88,15 +122,28 @@ uint32_t exp_custom(feature_dist_data_t x, int input_shift){
   return val;
 }
 
-feature_data_t scale_data(feature_data_t x, int index){
-  feature_data_t output = ((x-scale_mean[index])*scale_std[index])>>scale_shift;
+feature_data_t scale_data_V(feature_data_t x, int index){
+  feature_data_t output = ((x-scale_mean_V[index])*scale_std_V[index])>>scale_shift;
   return output;
 }
 
-feature_data_t* feature_select(feature_data_t* x, feature_data_t* feature_vector){
+feature_data_t scale_data_S(feature_data_t x, int index){
+  feature_data_t output = ((x-scale_mean_S[index])*scale_std_S[index])>>scale_shift;
+  return output;
+}
+
+feature_data_t* feature_select_V(feature_data_t* x, feature_data_t* feature_vector){
   int i = 0;
-  for(i=0;i<n_feat;i++){
-    feature_vector[i] = x[feature_select_idx[i]];
+  for(i=0;i<n_feat_V;i++){
+    feature_vector[i] = x[feature_select_idx_V[i]];
+  }
+  return feature_vector;
+}
+
+feature_data_t* feature_select_S(feature_data_t* x, feature_data_t* feature_vector){
+  int i = 0;
+  for(i=0;i<n_feat_S;i++){
+    feature_vector[i] = x[feature_select_idx_S[i]];
   }
   return feature_vector;
 }

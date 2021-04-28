@@ -33,9 +33,15 @@ int template_init;
 features_t* new_features(){
   features_t* features = (features_t*) malloc(sizeof(features_t));
   
+  features->prev2_RR = DEFAULT_RR;
   features->prev_RR = DEFAULT_RR;
   features->next_RR = DEFAULT_RR;
   features->avrg_RR = DEFAULT_RR;
+  features->prev_diff_RR = 0;
+  features->next_diff_RR = 0;
+  features->ratio1_RR = 1<<FEATURES_RR_RATIO_SHIFT;
+  features->ratio2_RR = 1<<FEATURES_RR_RATIO_SHIFT;
+  
   features->time_len = SIGNAL_SEGMENT_LENGTH;
   features->time = (int16_t*) malloc(features->time_len*sizeof(int16_t));
   features->dwt_len = dwt_bufferlen(DWT_LENGTH, DWT_LEVEL);
@@ -86,9 +92,16 @@ int extract_features_RR(beat_t* beat){
   // New RR interval 
   beat->features->next_RR = new_RR;
   beat->next_beat->features->prev_RR = new_RR;
+  beat->next_beat->features->prev2_RR = beat->features->prev_RR;
   
   // Past average RR interval (single pole IIR)
   beat->next_beat->features->avrg_RR = beat->features->avrg_RR - (beat->features->avrg_RR >> FEATURES_SMOOTH_DECAY_LOG) + (new_RR >> FEATURES_SMOOTH_DECAY_LOG);
+  
+  // Compute diff and ratio
+  beat->features->prev_diff_RR = beat->features->prev_RR - beat->features->avrg_RR;
+  beat->features->next_diff_RR = beat->features->next_RR - beat->features->avrg_RR;
+  beat->features->ratio1_RR = (beat->features->prev_RR<<FEATURES_RR_RATIO_SHIFT)/beat->features->prev2_RR;
+  beat->features->ratio2_RR = (beat->features->next_RR<<FEATURES_RR_RATIO_SHIFT)/beat->features->prev_RR;
   
   return 0;
 }
@@ -139,7 +152,12 @@ int gather_features(beat_t* beat, int16_t* features_out){
   
   features_out[0] = beat->features->prev_RR;
   features_out[1] = beat->features->next_RR;
-  features_out[2] = beat->features->avrg_RR;
+  features_out[2] = beat->features->prev2_RR;
+  features_out[3] = beat->features->avrg_RR;
+  features_out[4] = beat->features->prev_diff_RR;
+  features_out[5] = beat->features->next_diff_RR;
+  features_out[6] = beat->features->ratio1_RR;
+  features_out[7] = beat->features->ratio2_RR;
   
   for(i=0; i<FEATURES_COUNT_TIME; i++){
     features_out[FEATURES_COUNT_RR+i] = beat->features->time[SIGNAL_SEGMENT_BEFORE+time_idx[i]];
@@ -171,32 +189,6 @@ int update_feature_template(beat_t* beat){
 
 int16_t* get_features_buffer(){
   return features_buffer;
-}
-
-// Compute local mean of features (using rolling window average and data buffer)
-void smooth_features_init(int length){
-  int i = 0;
-  int j = 0;
-  // Init data buffer
-  smooth_features_buffer = (int16_t **)malloc(length * sizeof(int16_t *)); 
-  for (i=0; i<length; i++) {
-    smooth_features_buffer[i] = (int16_t *)malloc(FEATURES_SMOOTH_COUNT * sizeof(int16_t)); 
-    for(j=0; j<FEATURES_SMOOTH_COUNT; j++){
-      smooth_features_buffer[i][j] = 0;
-    }
-  }
-  // Init sum buffer
-  smooth_features_sum = (int32_t *)malloc(length * sizeof(int32_t)); 
-  for(i=0; i<length; i++){
-    smooth_features_sum[i] = 0;
-  }
-  // Init index
-  smooth_idx = 0;
-  // Init feature select buffer
-  features_select = (int16_t *)malloc(n_feat * sizeof(int16_t)); 
-  for(i=0; i<n_feat; i++){
-    features_select[i] = 0;
-  }
 }
 
 // Compute deviation from local average

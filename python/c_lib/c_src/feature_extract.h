@@ -13,7 +13,7 @@
 #include "signal_buffer.h"
 
 // Parameter definition
-#define FEATURES_COUNT_RR   4
+#define FEATURES_COUNT_RR   8
 #define FEATURES_COUNT_TIME 30
 #define FEATURES_DWT_START  0
 #define FEATURES_DWT_END    146
@@ -32,6 +32,8 @@
 #define DWT_LENGTH DWT_BEFORE+DWT_AFTER
 
 #define DEFAULT_RR              0.9*SAMPLING_FREQUENCY
+
+#define FEATURES_RR_RATIO_SHIFT 8
 
 
 // Function declaration

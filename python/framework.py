@@ -21,10 +21,11 @@ from src import data_IO
 from src.SVM import SVMtrain
 import time
 
-def run_framework_single_record(record_ID = 100, save_features=True, save_signal=False, append_features=False, ID=0, run_name='run_single', showFigures = False): 
+def run_framework_single_record(record_ID = 100, params = None, save_features=True, save_signal=False, append_features=False, ID=0, run_name='run_single', showFigures = False): 
   
   # Set parameters
-  params = default_parameters()
+  if params is None:
+    params = default_parameters()
   
   # Get signals and annotations from database
   ECG, time, annotations = database.openRecord(record_ID = record_ID, params=params, N_db = None, showFigures = showFigures, verbose = True, stopwatch=True)
@@ -48,14 +49,14 @@ def run_framework_single_record(record_ID = 100, save_features=True, save_signal
     
   return det_sensitivity, det_PPV, matched_labels, confmat, params
 
-def run_framework_all_records(save_features=True): 
+def run_framework_all_records(params = None, save_features=True, run_set = "both"): 
   
   sets = []
   
-  sets.append(("train",[101,106,108,109,112,114,115,116,118,119,122,124,201,203,205,207,208,209,215,220,223,230]))
-  sets.append(("test",[100,103,105,111,113,117,121,123,200,202,210,212,213,214,219,221,222,228,231,232,233,234]))
-  
-  sen = []
+  if run_set=="train" or run_set=="both":
+    sets.append(("train",[101,106,108,109,112,114,115,116,118,119,122,124,201,203,205,207,208,209,215,220,223,230]))
+  if run_set=="test" or run_set=="both":
+    sets.append(("test",[100,103,105,111,113,117,121,123,200,202,210,212,213,214,219,221,222,228,231,232,233,234]))
   
   sen = []
   ppv = []
@@ -66,16 +67,17 @@ def run_framework_all_records(save_features=True):
     record_list = set[1]
     print('Record list : [{}]'.format(', '.join(map(str,record_list))))
     for count,signalID in enumerate(record_list) :
-      det_sensitivity, det_PPV, matched_labels, confmat,_=run_framework_single_record(record_ID = signalID, ID=count, save_features=save_features, run_name='run_all_'+set_name,append_features=(count>0))
+      det_sensitivity, det_PPV, matched_labels, confmat,_=run_framework_single_record(params = params, record_ID = signalID, ID=count, save_features=save_features, run_name='run_all_'+set_name,append_features=(count>0))
       if(set_name=="test"):
         sen = sen+[det_sensitivity]
         ppv = ppv+[det_PPV]
         cm = cm + confmat
-  _,j,_=evaluation.statClass(cm)
+  _,j,_,_=evaluation.statClass(cm)
   print(sen)
   print(ppv)
   print(cm)
   print(j)
+  return sen,ppv,cm,j
 
 def trainModel(): 
   params = default_parameters()
@@ -112,7 +114,7 @@ def print_header():
 
 def print_help():
   print('OBSESS system model')
-  print('main.py [-h] [-a] [-r <recordNumber>]')
+  print('framework.py [-h] [-a] [-r <recordNumber>]')
   print("")
   print("Default: Run system model for record 100")
   print("")

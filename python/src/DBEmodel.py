@@ -32,12 +32,14 @@ def digitalBackEndModel(ECG,time, annotations, params = {}, showFigures = False)
       det_time = det_time+[time[i-output['delay']]]
       det_labels = det_labels + [output['class']]
       features = features + [output['features']]
+      #if len(det_time)>10:
+      #  return det_labels, det_time, features, 0
    
   # Close 
   ECGlib.finish()
   
   # Power
-  power = DBEPower(config['n_sv'], config['n_feat'],params = params)
+  power = DBEPower(config['n_sv_V']+config['n_sv_S'], config['n_feat_V'],params = params)
   
   return det_labels, det_time, features, power
   

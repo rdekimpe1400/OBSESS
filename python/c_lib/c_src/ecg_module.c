@@ -6,8 +6,10 @@
 #include "feature_extract.h" 
 #include "svm.h" 
 
-extern const int n_sv;
-extern const int n_feat;
+extern const int n_sv_V;
+extern const int n_feat_V;
+extern const int n_sv_S;
+extern const int n_feat_S;
 
 PyObject *Create_Output_Dict(int16_t* features, int length, int delay, int class)
   { 
@@ -25,12 +27,14 @@ PyObject *Create_Output_Dict(int16_t* features, int length, int delay, int class
     return output;
   }
   
-PyObject *Create_Config_Dict(int svm_n_sv, int svm_n_feat)
+PyObject *Create_Config_Dict(int svm_n_sv_S, int svm_n_feat_S, int svm_n_sv_V, int svm_n_feat_V)
   { 
     PyObject *output;
     output = PyDict_New();
-    PyDict_SetItemString(output, "n_sv", PyLong_FromLong(svm_n_sv));
-    PyDict_SetItemString(output, "n_feat", PyLong_FromLong(svm_n_feat));
+    PyDict_SetItemString(output, "n_sv_V", PyLong_FromLong(svm_n_sv_S));
+    PyDict_SetItemString(output, "n_feat_V", PyLong_FromLong(svm_n_feat_S));
+    PyDict_SetItemString(output, "n_sv_S", PyLong_FromLong(svm_n_sv_V));
+    PyDict_SetItemString(output, "n_feat_S", PyLong_FromLong(svm_n_feat_V));
     return output;
   }
   
@@ -79,7 +83,7 @@ static PyObject* init(PyObject* self, PyObject* args)
     ECG_init();
     
     PyObject* out_o;
-    out_o = Create_Config_Dict(n_sv,n_feat);
+    out_o = Create_Config_Dict(n_sv_S,n_feat_S,n_sv_V,n_feat_V);
     
     return out_o;
 }

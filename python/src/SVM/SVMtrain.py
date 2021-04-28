@@ -25,21 +25,39 @@ def updateModel(params = {}, verbose = True):
   CFileInit(file_name = C_file) 
   
   # Train model
-  model = load('clf.sav')
-  params = load('params.sav')
-  scaler = load('scaler.sav')
+  model_V = load('clf_V.sav')
+  params_V = load('params_V.sav')
+  model_S = load('clf_S.sav')
+  params_S = load('params_S.sav')
+  scaler = load('scaler_S.sav')
   
-  FS = params['FS']
+  FS_V = params_V['FS']
+  FS_S = params_S['FS']
   
   if verbose:
     print("--------------------------------------------------------")
-    print("Open SVM model")
-    print("\tClasses : {}".format(model.classes_))
-    print("\tNumber of SV : {} (total: {})".format(model.n_support_, np.sum(model.n_support_)))
-    sv_shape = np.shape(model.support_vectors_)
+    print("Open SVM model (V)")
+    print("\tClasses : {}".format(model_V.classes_))
+    print("\tNumber of SV : {} (total: {})".format(model_V.n_support_, np.sum(model_V.n_support_)))
+    sv_shape = np.shape(model_V.support_vectors_)
     print("\tNumber of features : {}".format(sv_shape[1]))
-    print("\tSelected features : {}".format(FS))
-    params = model.get_params()
+    print("\tSelected features : {}".format(FS_V))
+    params = model_V.get_params()
+    print("\tKernel : {}".format(params['kernel']))
+    if params['kernel']=='rbf':
+      print("\tC parameter : {}".format(params['C']))
+      print("\tGamma parameter : {}".format(params['gamma']))
+    else:
+      print("\033[91mUnsupported kernel type!! \033[0m")
+      sys.exit()
+    print("--------------------------------------------------------")
+    print("Open SVM model (S)")
+    print("\tClasses : {}".format(model_S.classes_))
+    print("\tNumber of SV : {} (total: {})".format(model_S.n_support_, np.sum(model_S.n_support_)))
+    sv_shape = np.shape(model_S.support_vectors_)
+    print("\tNumber of features : {}".format(sv_shape[1]))
+    print("\tSelected features : {}".format(FS_S))
+    params = model_S.get_params()
     print("\tKernel : {}".format(params['kernel']))
     if params['kernel']=='rbf':
       print("\tC parameter : {}".format(params['C']))
@@ -49,7 +67,7 @@ def updateModel(params = {}, verbose = True):
       sys.exit()
     print("--------------------------------------------------------")
   
-  SVMtranslate(model,scaler,FS, file_name = C_file)
+  SVMtranslate(model_S,FS_S, model_V,FS_V,scaler, file_name = C_file)
   
   CFileClose(file_name = C_file)
   return
@@ -61,20 +79,36 @@ def trainSVM():
   scaler = StandardScaler()
   features_train=scaler.fit_transform(features_train)
   features_test=scaler.transform(features_test)
+  
+  #V
+  FE_preselect_V = np.array([0,1,2,3,4,5,6,7,21,22,23,24,25,26,27,28,29,30,31,32,33,34,118,119,120,121,122,123,124,144,145,146,147,148,149,150,151,152,156,157,158,159,160])
+  features_train_V = features_train[:,FE_preselect_V]
+  features_test_V = features_test[:,FE_preselect_V]
 
-  FE_preselect = np.array([0,1,2,17,18,19,20,21,22,23,24,25,26,27,28,29,30,114,115,116,117,118,119,120,140,141,142,143,144,145,146,147,148,152,153,154,155,156])
-  features_train = features_train[:,FE_preselect]
-  features_test = features_test[:,FE_preselect]
 
+  SV_params_V = {'kernel':'rbf','C':0.1, 'gamma':0.1, 'FS':np.array([32, 34, 18, 23, 30, 21, 37, 27, 42, 40]), 'C_2':0.1, 'gamma_2':0.1, 'FS_2':None, 'class_weight':'balanced','type':'VvX'}
 
-  SV_params = {'kernel':'rbf','C':0.1, 'gamma':0.1, 'FS':np.array([27, 29, 13, 18, 25, 16, 32, 22, 37, 35]), 'C_2':0.1, 'gamma_2':0.1, 'FS_2':None, 'class_weight':'balanced','type':'VvX'}
-
-  cm = ECGclassification.train_and_test(features_train, labels_train, features_test, labels_test, SV_params, prune=True, verbose=True, save_clf = True)
+  cm = ECGclassification.train_and_test(features_train_V, labels_train, features_test_V, labels_test, SV_params_V, prune=True, verbose=True, save_clf_file = 'clf_V.sav')
   j_prune= ECGClassEval.evalStats_3(cm)
 
-  SV_params['FS'] = FE_preselect[SV_params['FS']]
-  dump(scaler,'scaler.sav')
-  dump(SV_params,'params.sav')
+  SV_params_V['FS'] = FE_preselect_V[SV_params_V['FS']]
+  dump(scaler,'scaler_V.sav')
+  dump(SV_params_V,'params_V.sav')
+  
+  #S
+  FE_preselect_S = np.array([0,1,2,3,4,5,6,7,12,13,14,15,16,17,18,137,138,139,140,141,158,159,160,161,172,173,174])
+  features_train_S = features_train[:,FE_preselect_S]
+  features_test_S = features_test[:,FE_preselect_S]
+
+  #0, 4, 5, 15, 1, 23, 20, 24, 21, 19
+  SV_params_S = {'kernel':'rbf','C':0.1, 'gamma':0.1, 'FS':np.array([0, 4, 5, 15, 1, 23]), 'C_2':0.1, 'gamma_2':0.1, 'FS_2':None, 'class_weight':'balanced','type':'NvS'}
+
+  cm = ECGclassification.train_and_test(features_train_S, labels_train, features_test_S, labels_test, SV_params_S, prune=True, verbose=True, save_clf_file = 'clf_S.sav')
+  j_prune= ECGClassEval.evalStats_3(cm)
+
+  SV_params_S['FS'] = FE_preselect_S[SV_params_S['FS']]
+  dump(scaler,'scaler_S.sav')
+  dump(SV_params_S,'params_S.sav')
   
   return
 
@@ -121,17 +155,28 @@ def SVMmodelOpen(file_name = "SVM.sav", scale_file_name = "scale.sav", FS_file_n
     print("--------------------------------------------------------")
   return model, scaler, FS
 
-def SVMtranslate(model,scaler,FS, file_name = "svm_int.h"):
-  sv = model.support_vectors_
-  sv_shape = np.shape(sv)
-  sv_params = model.get_params()
-  n_sv = np.sum(model.n_support_)
-  n_feat = sv_shape[1]
+def SVMtranslate(model_S,FS_S, model_V,FS_V,scaler, file_name = "svm_int.h"):
+  sv_V = model_V.support_vectors_
+  sv_shape_V = np.shape(sv_V)
+  sv_params_V = model_V.get_params()
+  n_sv_V = np.sum(model_V.n_support_)
+  n_feat_V = sv_shape_V[1]
   file = open(file_name,'a')
-  if sv_params['gamma']=='scale':
-    gamma = 1/n_feat
+  if sv_params_V['gamma']=='scale':
+    gamma_V = 1/n_feat_V
   else:
-    gamma = sv_params['gamma']
+    gamma_V = sv_params_V['gamma']
+  
+  sv_S = model_S.support_vectors_
+  sv_shape_S = np.shape(sv_S)
+  sv_params_S = model_S.get_params()
+  n_sv_S = np.sum(model_S.n_support_)
+  n_feat_S = sv_shape_S[1]
+  file = open(file_name,'a')
+  if sv_params_S['gamma']=='scale':
+    gamma_S = 1/n_feat_S
+  else:
+    gamma_S = sv_params_S['gamma']
   
   feature_data = 16
   feature_dist_data = 2*feature_data
@@ -148,7 +193,7 @@ def SVMtranslate(model,scaler,FS, file_name = "svm_int.h"):
   feature_scale = (2**(feature_data-1))/feature_max_range
   feature_shift = np.floor(np.log2(feature_scale)).astype(int) #Avoid feature saturation
   
-  feature_acc_shift = np.ceil(np.log2(n_feat)).astype(int) #Avoid accumulate saturation
+  feature_acc_shift = np.ceil(np.log2(np.maximum(n_feat_S,n_feat_S))).astype(int) #Avoid accumulate saturation
   
   scale_shift = 16
   
@@ -158,22 +203,40 @@ def SVMtranslate(model,scaler,FS, file_name = "svm_int.h"):
   
   # Write model data
   file.write('// Feature pre-processing\n')
-  file.write('const int feature_select_idx[{:d}] = {{'.format(n_feat))
-  for i in range(0,n_feat):
-    file.write("{:d}".format(FS[i]))
-    if i<(n_feat-1):
+  file.write('const int feature_select_idx_V[{:d}] = {{'.format(n_feat_V))
+  for i in range(0,n_feat_V):
+    file.write("{:d}".format(FS_V[i]))
+    if i<(n_feat_V-1):
       file.write(", ")
   file.write("};\n")
-  file.write('const feature_data_t scale_mean[{:d}] = {{'.format(n_feat))
-  for i in range(0,n_feat):
-    file.write("{:d}".format(np.round(scaler.mean_[FS[i]]).astype(int)))
-    if i<(n_feat-1):
+  file.write('const feature_data_t scale_mean_V[{:d}] = {{'.format(n_feat_V))
+  for i in range(0,n_feat_V):
+    file.write("{:d}".format(np.round(scaler.mean_[FS_V[i]]).astype(int)))
+    if i<(n_feat_V-1):
       file.write(", ")
   file.write("};\n")
-  file.write('const int32_t scale_std[{:d}] = {{'.format(n_feat))
-  for i in range(0,n_feat):
-    file.write("{:d}".format(np.round((2**(feature_shift+scale_shift))/np.sqrt(scaler.var_[FS[i]])).astype(int)))
-    if i<(n_feat-1):
+  file.write('const int32_t scale_std_V[{:d}] = {{'.format(n_feat_V))
+  for i in range(0,n_feat_V):
+    file.write("{:d}".format(np.round((2**(feature_shift+scale_shift))/np.sqrt(scaler.var_[FS_V[i]])).astype(int)))
+    if i<(n_feat_V-1):
+      file.write(", ")
+  file.write("};\n")
+  file.write('const int feature_select_idx_S[{:d}] = {{'.format(n_feat_S))
+  for i in range(0,n_feat_S):
+    file.write("{:d}".format(FS_S[i]))
+    if i<(n_feat_S-1):
+      file.write(", ")
+  file.write("};\n")
+  file.write('const feature_data_t scale_mean_S[{:d}] = {{'.format(n_feat_S))
+  for i in range(0,n_feat_S):
+    file.write("{:d}".format(np.round(scaler.mean_[FS_S[i]]).astype(int)))
+    if i<(n_feat_S-1):
+      file.write(", ")
+  file.write("};\n")
+  file.write('const int32_t scale_std_S[{:d}] = {{'.format(n_feat_S))
+  for i in range(0,n_feat_S):
+    file.write("{:d}".format(np.round((2**(feature_shift+scale_shift))/np.sqrt(scaler.var_[FS_S[i]])).astype(int)))
+    if i<(n_feat_S-1):
       file.write(", ")
   file.write("};\n")
   file.write('const int scale_shift = {};\n'.format(scale_shift))
@@ -199,9 +262,13 @@ def SVMtranslate(model,scaler,FS, file_name = "svm_int.h"):
   
   file.write('// SVM model data\n')
   
-  file.write('const int n_feat = {};\n'.format(n_feat))
+  file.write('const int n_feat_V = {};\n'.format(n_feat_V))
   
-  file.write('const int gam_inv = {};\n'.format(int(1/gamma)))
+  file.write('const int gam_inv_V = {};\n'.format(int(1/gamma_V)))
+  
+  file.write('const int n_feat_S = {};\n'.format(n_feat_S))
+  
+  file.write('const int gam_inv_S = {};\n'.format(int(1/gamma_S)))
   
   file.write('const int feature_shift = {};\n'.format(int(feature_shift)))
   
@@ -209,30 +276,59 @@ def SVMtranslate(model,scaler,FS, file_name = "svm_int.h"):
   
   file.write('const int kernel_acc_shift = {};\n'.format(int(kernel_acc_shift)))
   
-  file.write('const int n_sv_class[2] = {{{}, {}}};\n'.format(model.n_support_[0], model.n_support_[1]))
+  file.write('const int n_sv_class_V[2] = {{{}, {}}};\n'.format(model_V.n_support_[0], model_V.n_support_[1]))
   
-  file.write('const int n_sv = {};\n'.format(n_sv))
+  file.write('const int n_sv_V = {};\n'.format(n_sv_V))
   
-  file.write('const int start_sv[2] = {{{}, {}}};\n'.format(0, model.n_support_[0]))
+  file.write('const int start_sv_V[2] = {{{}, {}}};\n'.format(0, model_V.n_support_[0]))
   
-  interp_int = np.round(model.intercept_*(2**(exp_shift+coef_shift-kernel_acc_shift))).astype(int)
-  file.write('const decision_data_t rho = {};\n'.format(interp_int[0]))
+  interp_int_V = np.round(model_V.intercept_*(2**(exp_shift+coef_shift-kernel_acc_shift))).astype(int)
+  file.write('const decision_data_t rho_V = {};\n'.format(interp_int_V[0]))
   
-  file.write('const decision_data_t sv_coef[{:d}] = {{'.format(n_sv))
-  for i in range(0,n_sv):
-    file.write("{}".format(int(model.dual_coef_[0,i]*(2**coef_shift))))
-    if i<(n_sv-1):
+  file.write('const decision_data_t sv_coef_V[{:d}] = {{'.format(n_sv_V))
+  for i in range(0,n_sv_V):
+    file.write("{}".format(int(model_V.dual_coef_[0,i]*(2**coef_shift))))
+    if i<(n_sv_V-1):
       file.write(", ")
   file.write("};\n")
   
-  file.write('const feature_data_t sv[{:d}][{:d}] = {{\n'.format(n_sv,n_feat))
-  for i in range(0,n_sv):
+  file.write('const feature_data_t sv_V[{:d}][{:d}] = {{\n'.format(n_sv_V,n_feat_V))
+  for i in range(0,n_sv_V):
     file.write("{")
-    for j in range(0,n_feat):
-      file.write("{}".format(int(sv[i,j]*(2**feature_shift))))
-      if j<(n_feat-1):
+    for j in range(0,n_feat_V):
+      file.write("{}".format(int(sv_V[i,j]*(2**feature_shift))))
+      if j<(n_feat_V-1):
         file.write(", ")
-      elif i<(n_sv-1):
+      elif i<(n_sv_V-1):
+        file.write("},\n")
+      else: 
+        file.write("}\n")
+  file.write("};\n")
+  
+  file.write('const int n_sv_class_S[2] = {{{}, {}}};\n'.format(model_S.n_support_[0], model_S.n_support_[1]))
+  
+  file.write('const int n_sv_S = {};\n'.format(n_sv_S))
+  
+  file.write('const int start_sv_S[2] = {{{}, {}}};\n'.format(0, model_S.n_support_[0]))
+  
+  interp_int_S = np.round(model_S.intercept_*(2**(exp_shift+coef_shift-kernel_acc_shift))).astype(int)
+  file.write('const decision_data_t rho_S = {};\n'.format(interp_int_S[0]))
+  
+  file.write('const decision_data_t sv_coef_S[{:d}] = {{'.format(n_sv_S))
+  for i in range(0,n_sv_S):
+    file.write("{}".format(int(model_S.dual_coef_[0,i]*(2**coef_shift))))
+    if i<(n_sv_S-1):
+      file.write(", ")
+  file.write("};\n")
+  
+  file.write('const feature_data_t sv_S[{:d}][{:d}] = {{\n'.format(n_sv_S,n_feat_S))
+  for i in range(0,n_sv_S):
+    file.write("{")
+    for j in range(0,n_feat_S):
+      file.write("{}".format(int(sv_S[i,j]*(2**feature_shift))))
+      if j<(n_feat_S-1):
+        file.write(", ")
+      elif i<(n_sv_S-1):
         file.write("},\n")
       else: 
         file.write("}\n")
@@ -241,12 +337,23 @@ def SVMtranslate(model,scaler,FS, file_name = "svm_int.h"):
   
   return 1
 
-def open_features(train_file = "output/train.dat", test_file = "output/test.dat", reject_Q=True,merge_F = True,remove_V = False,merge_S = False, verbose = True ):
+def open_features(train_file = "output/train.dat", test_file = "output/test.dat", reject_Q=True,merge_F = True,remove_V = False,merge_S = False, reject_NOT = True, verbose = True ):
 
   subset_train, features_train, labels_train,names = FE.readFE(file_name = train_file,read_header=False)
   subset_test, features_test, labels_test,_ = FE.readFE(file_name = test_file,read_header=False)
 
   classes = np.array([BEAT_N,BEAT_S,BEAT_V,BEAT_F,BEAT_Q])
+
+  # Reject non beats
+  if reject_NOT :
+    idx_reject = np.where(labels_train == NOT_BEAT)
+    features_train = np.delete(features_train,idx_reject,axis=0)
+    labels_train = np.delete(labels_train,idx_reject,axis=0)
+    subset_train = np.delete(subset_train,idx_reject,axis=0)
+    idx_reject = np.where(labels_test == NOT_BEAT)
+    features_test = np.delete(features_test,idx_reject,axis=0)
+    labels_test = np.delete(labels_test,idx_reject,axis=0)
+    subset_test = np.delete(subset_test,idx_reject,axis=0)
 
   # Reject Q
   if reject_Q :

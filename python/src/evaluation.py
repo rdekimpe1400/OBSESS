@@ -207,7 +207,7 @@ def statClass(confmat,verbose = True):
     print("Ijk index\t\t : {:6.2f} %".format(jk))
     print("####################################################",flush=True)
   
-  return jk,j,k
+  return jk,j,k,[SenV,PPV,SenS,PPS]
 
 def printPower(power, params = {}):  
   print("####################################################")
