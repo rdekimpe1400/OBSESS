@@ -113,8 +113,10 @@ def analogFrontEndModel(ECG,time_analog, params = {}, IA_TF = None, VCO_TF=None,
     axs[2].plot(time_dig,ADC_out_m,label="-")
     axs[2].set(ylabel="ADC output [#]",xlabel="Time[s]")
     axs[2].legend(loc='upper right')
-    axs[3].plot(time_dig,ADC_out)
+    axs[3].plot(time_dig,np.left_shift(ECG_dig,np.log2(np.floor(6600000/(params["input_scale"]*params["ADC_VCO_f0"]))).astype(int)))
+    #axs[3].plot(time_dig,ECG_dig)
     axs[3].set(ylabel="Differential ADC output [V]")
+    axs[3].set(xlim=(0,50))
     plt.savefig('plots/AFE_'+str(channel)+'.png')
   
   t_plot = time.time()
@@ -129,6 +131,6 @@ def analogFrontEndModel(ECG,time_analog, params = {}, IA_TF = None, VCO_TF=None,
     print("- Plot signals                  {:4.3f}s".format(t_plot-t_adc))
     print("")
     print("- Total                         {:4.3f}s".format(t_plot-t_start))
-    print("####################################################")
+    print("####################################################",flush=True)
   
   return ECG_dig, time_dig

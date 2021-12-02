@@ -30,6 +30,7 @@ from random import random
 verbose_info = 1
 
 def train(features_train, labels_train, params, prune = False, verbose = False, hier = False):
+  print(params)
   if not hier:
     if params['gamma']=='scale':
       gamma = 'scale'
@@ -45,8 +46,13 @@ def train(features_train, labels_train, params, prune = False, verbose = False, 
   if prune:
     if verbose:
       print('Number of SV before pruning [{:d},{:d}] ({:d})'.format(clf.n_support_[0],clf.n_support_[1],np.sum(clf.n_support_)))
-    labels_train_predict = clf.predict(features_train)
-    labels_prune_selection = labels_train_predict==labels_train
+    decision_values = clf.decision_function(features_train)
+    labels_train_predict = decision_values>0
+    if params['pruning_D']>=0:
+      pruning_val = np.minimum(params['pruning_D'],np.minimum(np.max(decision_values),-np.min(decision_values)))
+      labels_prune_selection = np.logical_and((labels_train_predict==labels_train),np.absolute(decision_values)>=pruning_val)
+    else:
+      labels_prune_selection = np.logical_or((labels_train_predict==labels_train),np.absolute(decision_values)<(-params['pruning_D']))
     if verbose:
       confmat_preprune = metrics.confusion_matrix(labels_train, labels_train_predict)
       print(confmat_preprune)

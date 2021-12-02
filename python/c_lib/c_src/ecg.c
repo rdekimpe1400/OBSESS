@@ -21,9 +21,12 @@ int16_t* ECG_wrapper( int sample, int label_gold, int* delay, int* output){
   int16_t ecg_filt = 0;
   int detection_delay = 0;
   int16_t* features = 0;
+  int amplitude = 0;
   
   *output = 0;
   *delay = 0;
+  
+  ecg=QRSNorm(ecg);
   
   // QRS beat enhancement for detection
   ecg_transform=QRSFilter(ecg, 0,&ecg_filt );
@@ -42,13 +45,14 @@ int16_t* ECG_wrapper( int sample, int label_gold, int* delay, int* output){
   
   // If an old beat can be classified (post-RR interval available, post-QRS window signal available), process it
   if(is_beat_ready()){
-    features = buffer_get_features();
+    features = buffer_get_features(&amplitude);
     *delay = pop_beat();
     //features = extract_features();
     //features_select = select_features(features);  
-    *output=svm_predict(features ); 
+    *output=svm_predict(features );
+    
+    QRSNorm_updateGain(amplitude);
   }
-  
   
   // Increment beat delays in buffer
   increment_beat_delay();
@@ -60,6 +64,7 @@ void ECG_init(){
   int16_t dummy;
   QRSDet( 0, 0, 1 );
   QRSFilter( 0, 1, &dummy );
+  init_QRSNorm();
   init_signal_buffer();
   init_beat_buffer();
   init_features_buffer();
@@ -71,6 +76,7 @@ void ECG_init(){
 void ECG_close(){
   close_beat_buffer();
   close_signal_buffer();
+  close_features_buffer();
   return;
 }
 

@@ -9,12 +9,11 @@ from scipy.interpolate import interp1d
 
 #################################### VCO Transfer Function  
 def VCO_dist(params = {}):            
-    X, Y , Y0 = [], [], []
+    X, Y = [], []
     for line in open(params["ADC_VCO_TF_file"], 'r'):
       values = [float(s) for s in line.split()]
       X.append(values[0])
-      Y.append(values[1])
-      Y0.append(values[2])
+      Y.append(values[1]*params["ADC_VCO_f0"])
     # to extend interpolation rage     
     x_min_extend = -4
     x_max_extend = 4

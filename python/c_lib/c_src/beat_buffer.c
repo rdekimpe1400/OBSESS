@@ -105,12 +105,13 @@ int close_beat_buffer(){
 }
 
 // Extract features from oldest beat
-int16_t* buffer_get_features(){ 
+int16_t* buffer_get_features(int* amplitude){ 
 int16_t* features;
 #ifdef DEBUG_PRINT
   printf("Get beat\n");
 #endif
   beat_set_signal(beatBuf[0], get_segment(beatBuf[0]->delay));
+  *amplitude = beat_get_amplitude(beatBuf[0]);
   beat_set_gold_label(beatBuf[0], get_gold_label(beatBuf[0]->delay));
   extract_features_RR(beatBuf[0]);
   extract_features_time(beatBuf[0]);

@@ -104,6 +104,9 @@ def openRecord(record_ID = 100, params = {}, N_db = None, showFigures = False, v
   
   t_resample = time.time()
   
+  # Apply reduction factor
+  ECG_out = ECG_out*params['input_scale']
+  
   # Print information
   if verbose :
     print("####################################################")

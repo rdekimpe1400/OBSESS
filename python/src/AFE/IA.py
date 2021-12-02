@@ -17,8 +17,8 @@ def IA_dist(params = {}):
         X0.append(values[1])
         Y.append(values[2])
 #   # to extend interpolation rage  
-    x_min_extend = -0.1
-    x_max_extend = 0.1
+    x_min_extend = -1.8
+    x_max_extend = 1.8
     n_extend = 20
     Xnew=np.append(np.linspace(x_min_extend,min(X)-1e-4,n_extend), X)
     Ynew=np.append(np.ones(n_extend)* min(Y), Y)    

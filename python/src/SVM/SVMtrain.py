@@ -20,7 +20,7 @@ from src.SVM import ECGclassification
 from src.SVM import ECGClassEval
 
 def updateModel(params = {}, verbose = True):
-  C_file = params['SVM_model_file']
+  C_file = params['SVM_library']+params['SVM_model_file']
   
   CFileInit(file_name = C_file) 
   
@@ -72,7 +72,7 @@ def updateModel(params = {}, verbose = True):
   CFileClose(file_name = C_file)
   return
 
-def trainSVM():
+def trainSVM(params = None):
 
   labels_train, features_train, subset_train, labels_test, features_test, subset_test = open_features(train_file = "output/features_run_all_train.dat", test_file = "output/features_run_all_test.dat")
   
@@ -85,8 +85,8 @@ def trainSVM():
   features_train_V = features_train[:,FE_preselect_V]
   features_test_V = features_test[:,FE_preselect_V]
 
-
-  SV_params_V = {'kernel':'rbf','C':0.1, 'gamma':0.1, 'FS':np.array([32, 34, 18, 23, 30, 21, 37, 27, 42, 40]), 'C_2':0.1, 'gamma_2':0.1, 'FS_2':None, 'class_weight':'balanced','type':'VvX'}
+  FE_set_V = np.array([32, 34, 18, 23, 30, 21, 37, 27, 42, 40])
+  SV_params_V = {'kernel':'rbf','C':0.1, 'gamma':0.1, 'FS':FE_set_V[0:params['SVM_feature_N_V']], 'C_2':0.1, 'gamma_2':0.1, 'FS_2':None, 'pruning_D': params['SVM_pruning_D'], 'class_weight':'balanced','type':'VvX'}
 
   cm = ECGclassification.train_and_test(features_train_V, labels_train, features_test_V, labels_test, SV_params_V, prune=True, verbose=True, save_clf_file = 'clf_V.sav')
   j_prune= ECGClassEval.evalStats_3(cm)
@@ -99,13 +99,13 @@ def trainSVM():
   FE_preselect_S = np.array([0,1,2,3,4,5,6,7,12,13,14,15,16,17,18,137,138,139,140,141,158,159,160,161,172,173,174])
   features_train_S = features_train[:,FE_preselect_S]
   features_test_S = features_test[:,FE_preselect_S]
-
-  #0, 4, 5, 15, 1, 23, 20, 24, 21, 19
-  SV_params_S = {'kernel':'rbf','C':0.1, 'gamma':0.1, 'FS':np.array([0, 4, 5, 15, 1, 23]), 'C_2':0.1, 'gamma_2':0.1, 'FS_2':None, 'class_weight':'balanced','type':'NvS'}
-
+  
+  FE_set_S = np.array([0, 4, 5, 15, 1, 23, 20, 24, 21, 19])
+  SV_params_S = {'kernel':'rbf','C':0.1, 'gamma':0.1, 'FS':FE_set_S[0:params['SVM_feature_N_S']], 'C_2':0.1, 'gamma_2':0.1, 'FS_2':None, 'pruning_D': params['SVM_pruning_D'], 'class_weight':'balanced','type':'NvS'}
+  
   cm = ECGclassification.train_and_test(features_train_S, labels_train, features_test_S, labels_test, SV_params_S, prune=True, verbose=True, save_clf_file = 'clf_S.sav')
   j_prune= ECGClassEval.evalStats_3(cm)
-
+  
   SV_params_S['FS'] = FE_preselect_S[SV_params_S['FS']]
   dump(scaler,'scaler_S.sav')
   dump(SV_params_S,'params_S.sav')

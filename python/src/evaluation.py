@@ -12,12 +12,12 @@ from src import annotations
 from src.defines import *
 
 # Compare annotated and detected beats and labels
-def compareAnnotations(annot, detect, time, ECG, showFigure = False):
+def compareAnnotations(annot, detect, time, ECG, showFigures = False):
   
   # Evaluate detections
   matched, match_idx, missed, init = matchAnnot(annot['time'], detect['time'])
   
-  if showFigure :      
+  if showFigures :      
     fig, axs = plt.subplots(8,sharex=True)
     fig.suptitle("Detection evaluation")
     axs[0].plot(time,ECG[0])
@@ -95,7 +95,8 @@ def matchAnnot(annot_time, detect_time):
   return matched, idx, missed, init
   
 def statDetect(matched, missed, init,verbose = True):
-  
+  eps = 0.0001
+
   N_init = np.sum(init)
   N_ann = len(missed)
   N_det = len(matched)
@@ -104,8 +105,8 @@ def statDetect(matched, missed, init,verbose = True):
   FP = np.sum(np.logical_not(matched))
   FN = np.sum(missed)
   
-  sensitivity = 100*TP/(TP+FN)
-  PPV = 100*TP/(TP+FP)
+  sensitivity = 100*TP/(TP+FN+eps)
+  PPV = 100*TP/(TP+FP+eps)
   
   if verbose:
     print("####################################################")
@@ -131,6 +132,8 @@ def statDetect(matched, missed, init,verbose = True):
   return sensitivity, PPV
 
 def statClass(confmat,verbose = True):
+  eps = 0.0001
+
   Nn = confmat[1,1]
   Ns = confmat[1,2]
   Nv = confmat[1,3]
@@ -163,13 +166,13 @@ def statClass(confmat,verbose = True):
   
   TN = Nn
   Sp = 100*TN/(Nn+Ns+Nv+0.00001)
-  Acc = 100*(TN + TPS + TPV)/(np.sum(np.sum(confmat)))
+  Acc = 100*(TN + TPS + TPV)/(np.sum(np.sum(confmat))+eps)
   
   j = (SenS + SenV + PPS + PPV)/4
-  DN = (Nn + Ns + Nv)*(Nn + Sn + Vn)/tot
-  DS = (Sn + Ss + Sv)*(Ns + Ss + Vs)/tot
-  DV = (Vn + Vs + Vv)*(Nv + Sv + Vv)/tot
-  k = 100*(((Nn + Vv + Ss) - (DN + DS + DV))/(tot - (DN + DS + DV)))
+  DN = (Nn + Ns + Nv)*(Nn + Sn + Vn)/(tot+eps)
+  DS = (Sn + Ss + Sv)*(Ns + Ss + Vs)/(tot+eps)
+  DV = (Vn + Vs + Vv)*(Nv + Sv + Vv)/(tot+eps)
+  k = 100*(((Nn + Vv + Ss) - (DN + DS + DV))/(tot + eps - (DN + DS + DV)))
   jk = k/2 + j/2
   
   if verbose :

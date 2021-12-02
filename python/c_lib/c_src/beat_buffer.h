@@ -19,6 +19,6 @@ void add_beat(int16_t delay);
 void increment_beat_delay(void);
 uint16_t pop_beat();
 int is_beat_ready(void);
-int16_t* buffer_get_features(void);
+int16_t* buffer_get_features(int* amplitude);
 
 #endif //BEATBUF_H_
