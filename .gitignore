@@ -2,6 +2,8 @@
 /python/mitdb/
 /python/c_lib/build/
 /python/c_lib/c_src/old/
+/python/c_lib_fast/build/
+/python/c_lib_fast/c_src/old/
 *.pyc
 *.log
 /python/data/*.dat
@@ -12,3 +14,6 @@
 /python/plots/*.png
 /python/output/*.dat
 /python/*.sav
+/python/old/
+/python/old2/
+/python/temp/

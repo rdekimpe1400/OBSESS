@@ -145,7 +145,7 @@ def train_and_test(features_train, labels_train, features_test, labels_test, par
   
   return confmat_test
 
-def train_and_test_fold(features, folds, fold_idx, subset, labels,params, N_folds = 0, prune=False, verbose = False) :
+def train_and_test_fold(features, folds, fold_idx, subset, labels,params, N_folds = 0, verbose = False) :
   test_rec = folds[fold_idx]
   train_rec = np.concatenate(np.delete(folds, fold_idx,axis=0))
   
@@ -162,7 +162,7 @@ def train_and_test_fold(features, folds, fold_idx, subset, labels,params, N_fold
   labels_test = labels[test_idx]
   
   # Train and test classifier
-  confmat_test=train_and_test(features_train, labels_train, features_test, labels_test, params, prune=prune, verbose = verbose)
+  confmat_test=train_and_test(features_train, labels_train, features_test, labels_test, params, verbose = verbose)
   
   if(verbose):
     print("----  Fold {:d}/{:d} done  ----".format(fold_idx+1,N_folds))
@@ -171,7 +171,7 @@ def train_and_test_fold(features, folds, fold_idx, subset, labels,params, N_fold
   
   return confmat_test
 
-def cross_val(features, subset, labels, params, prune=False, verbose = False) :
+def cross_val(features, subset, labels, params, verbose = False) :
   N_rec = int(np.max(subset)+1)
   rec_idx = list(np.random.permutation(N_rec))
 
@@ -184,7 +184,7 @@ def cross_val(features, subset, labels, params, prune=False, verbose = False) :
   else :
     print("No features filter")
  
-  result = Parallel(n_jobs=12)(delayed(train_and_test_fold)(features, folds, fold_idx, subset, labels, params,N_folds = N_folds, prune=prune, verbose = False) for fold_idx in range(0,N_folds)) 
+  result = Parallel(n_jobs=12)(delayed(train_and_test_fold)(features, folds, fold_idx, subset, labels, params,N_folds = N_folds, verbose = False) for fold_idx in range(0,N_folds)) 
   confmat = np.sum(result,axis=0)
   
   # Extract output metric

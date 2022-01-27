@@ -86,7 +86,7 @@ def trainSVM(params = None):
   features_test_V = features_test[:,FE_preselect_V]
 
   FE_set_V = np.array([32, 34, 18, 23, 30, 21, 37, 27, 42, 40])
-  SV_params_V = {'kernel':'rbf','C':0.1, 'gamma':0.1, 'FS':FE_set_V[0:params['SVM_feature_N_V']], 'C_2':0.1, 'gamma_2':0.1, 'FS_2':None, 'pruning_D': params['SVM_pruning_D'], 'class_weight':'balanced','type':'VvX'}
+  SV_params_V = {'kernel':'rbf','C':0.1, 'gamma':0.1, 'degree':3, 'FS':FE_set_V[0:params['SVM_feature_N_V']], 'C_2':0.1, 'gamma_2':0.1, 'FS_2':None, 'pruning_D': params['SVM_pruning_D'], 'class_weight':'balanced','type':'VvX'}
 
   cm = ECGclassification.train_and_test(features_train_V, labels_train, features_test_V, labels_test, SV_params_V, prune=True, verbose=True, save_clf_file = 'clf_V.sav')
   j_prune= ECGClassEval.evalStats_3(cm)
@@ -101,7 +101,7 @@ def trainSVM(params = None):
   features_test_S = features_test[:,FE_preselect_S]
   
   FE_set_S = np.array([0, 4, 5, 15, 1, 23, 20, 24, 21, 19])
-  SV_params_S = {'kernel':'rbf','C':0.1, 'gamma':0.1, 'FS':FE_set_S[0:params['SVM_feature_N_S']], 'C_2':0.1, 'gamma_2':0.1, 'FS_2':None, 'pruning_D': params['SVM_pruning_D'], 'class_weight':'balanced','type':'NvS'}
+  SV_params_S = {'kernel':'rbf','C':0.1, 'gamma':0.1, 'degree':3, 'FS':FE_set_S[0:params['SVM_feature_N_S']], 'C_2':0.1, 'gamma_2':0.1, 'FS_2':None, 'pruning_D': params['SVM_pruning_D'], 'class_weight':'balanced','type':'NvS'}
   
   cm = ECGclassification.train_and_test(features_train_S, labels_train, features_test_S, labels_test, SV_params_S, prune=True, verbose=True, save_clf_file = 'clf_S.sav')
   j_prune= ECGClassEval.evalStats_3(cm)

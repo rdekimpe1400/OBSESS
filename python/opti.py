@@ -33,10 +33,12 @@ th = np.array([3.65750459e-02,2.30333372e-01,9.6127057408,25.7326009026,17.07717
 full_file_name = 'full_log.log'
 exec_file_name = 'exec_log.log'
 data_file_name = 'data_log.log'
+opti_file_name = 'opti_log.log'
 out_dir = './temp/'
 full_log_file = out_dir+full_file_name
 exec_log_file = out_dir+exec_file_name
 data_log_file = out_dir+data_file_name
+opti_log_file = out_dir+opti_file_name
 
 # Parameters
 params = default.default_parameters()
@@ -143,9 +145,19 @@ def fetch_data(x):
 def save_state(x):
   global iteration
   iteration = iteration+1
+  power_perf = power(x)
+  inference_perf = inference(x)
   log_exec("--- ITERATION {:d} ---\n".format(iteration))
-  accumulator_state.append([power(x),inference(x),x])
+  accumulator_state.append([power_perf,inference_perf,x])
   dump(accumulator_state,out_dir+'accumulator_state.sav')
+  f = open(opti_log_file, "a")
+  f.write("{:4d} ".format(iteration))
+  f.write("[{:.10f} {:.10f} {:.10f}] ".format(x[0],x[1],x[2]))
+  for i in range(0,len(inference_perf)):
+    f.write("{:.10f} ".format(inference_perf[i]))
+  f.write("{:.10f}".format(power_perf))
+  f.write("\n")
+  f.close()
 
 def execute_framework(x):
   log_exec("Fetching data for point [{:.10f} {:.10f} {:.10f}]\n".format(x[0],x[1],x[2]))
@@ -201,15 +213,19 @@ def run_optimization(update_output_dir):
   global full_log_file
   global exec_log_file
   global data_log_file
+  global opti_log_file
   full_log_file = out_dir+full_file_name
   exec_log_file = out_dir+exec_file_name
   data_log_file = out_dir+data_file_name
+  opti_log_file = out_dir+opti_file_name
   
   f = open(exec_log_file, "w")
   f.close()
   f = open(data_log_file, "w")
   f.close()
   f = open(full_log_file, "w")
+  f.close()
+  f = open(opti_log_file, "w")
   f.close()
   
   print('Start optimization')
@@ -230,7 +246,7 @@ def run_optimization(update_output_dir):
   constraints.append({"fun": constraint_4, "type": "ineq"})
   constraints.append({"fun": constraint_5, "type": "ineq"})
   
-  start = [0.8,0.8,0.8]
+  start = [0.79+0.02*random.random(),0.79+0.02*random.random(),0.79+0.02*random.random()]
   save_state(start)
   
   bounds = list()
