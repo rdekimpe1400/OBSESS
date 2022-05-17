@@ -4,7 +4,7 @@ def default_parameters():
             "analog_resample":1000,
             "IA_TF_file":'./src/AFE/AFE_data/IA_dist.dat',
             "IA_DCout": 0.6,
-            "IA_thermal_noise" : 4.2426406871192876e-07, #1e-07, #0.095e-6,
+            "IA_thermal_noise" : 1e-07, #0.095e-6,
             "IA_flicker_noise_corner" : None, #1,
             "ADC_Fs": 200,
             "ADC_VCO_f0": 4550000, #26758898,

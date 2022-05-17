@@ -30,15 +30,15 @@ alpha = 0.5
 th = np.array([3.65750459e-02,2.30333372e-01,9.6127057408,25.7326009026,17.0771761517,65.2602614876]) * (1+alpha)
 
 # Data log file
-full_file_name = 'full_log.log'
 exec_file_name = 'exec_log.log'
 data_file_name = 'data_log.log'
 opti_file_name = 'opti_log.log'
+fram_file_name = 'fram_log.log'
 out_dir = './temp/'
-full_log_file = out_dir+full_file_name
 exec_log_file = out_dir+exec_file_name
 data_log_file = out_dir+data_file_name
 opti_log_file = out_dir+opti_file_name
+fram_log_file = out_dir+fram_file_name
 
 # Parameters
 params = default.default_parameters()
@@ -50,16 +50,6 @@ accumulator_constr = list()
 accumulator_state = list()
 
 #######################
-
-@contextmanager
-def nullify_stdout():
-    stdout = sys.stdout
-    redirect = open(full_log_file, "a")
-    try:
-        sys.stdout = redirect
-        yield
-    finally:
-        sys.stdout = stdout
 
 def norm_param(x):
   #IA
@@ -159,6 +149,23 @@ def save_state(x):
   f.write("\n")
   f.close()
 
+def save_state_trust(x,optimize.OptimizeResult state):
+  global iteration
+  iteration = iteration+1
+  power_perf = power(x)
+  inference_perf = inference(x)
+  log_exec("--- ITERATION {:d} ---\n".format(iteration))
+  accumulator_state.append([power_perf,inference_perf,x])
+  dump(accumulator_state,out_dir+'accumulator_state.sav')
+  f = open(opti_log_file, "a")
+  f.write("{:4d} ".format(iteration))
+  f.write("[{:.10f} {:.10f} {:.10f}] ".format(x[0],x[1],x[2]))
+  for i in range(0,len(inference_perf)):
+    f.write("{:.10f} ".format(inference_perf[i]))
+  f.write("{:.10f}".format(power_perf))
+  f.write("\n")
+  f.close()
+
 def execute_framework(x):
   log_exec("Fetching data for point [{:.10f} {:.10f} {:.10f}]\n".format(x[0],x[1],x[2]))
   inference_perf, power_perf = fetch_data(x)
@@ -168,10 +175,9 @@ def execute_framework(x):
   else:
     norm_param(x)
     log_exec('Previous data not found. Executing framework with {:s}...\n'.format(str(params)))
-    with nullify_stdout():
-      train_inference_framework(params)
-      inference_perf = run_inference_framework()
-      power_perf = run_power_framework(params)
+    train_inference_framework(params)
+    inference_perf = run_inference_framework()
+    power_perf = run_power_framework(params)
     dump_data(x,inference_perf, power_perf)
     log_exec('Data obtained : Power [{:f}] - Inference [{:s}]\n'.format(power_perf, ' '.join([str(elem) for elem in inference_perf])))
     return inference_perf, power_perf
@@ -179,8 +185,11 @@ def execute_framework(x):
 
 def run_inference_framework():
   global params
+  log_exec('Inference evaluation with param {:s}...\n'.format(str(params)))
   dump(params,out_dir+'params.sav')
-  subprocess.run("python framework.py -e {}".format(out_dir), shell=True,stdout=subprocess.DEVNULL,stderr=subprocess.STDOUT)
+  f = open(fram_log_file, "a")
+  subprocess.run("python framework.py -e {}".format(out_dir), shell=True,stdout=f,stderr=subprocess.STDOUT)
+  f.close()
   det_sen,det_ppv,cm,params = load(out_dir+'perf.sav')
   _,_,_,class_perf=evaluation.statClass(cm)
   perf = np.zeros(6)
@@ -193,41 +202,48 @@ def run_inference_framework():
   return perf
 
 def train_inference_framework(params):
+  log_exec('Train framework with param {:s}...\n'.format(str(params)))
   dump(params,out_dir+'params.sav')
-  subprocess.run("python framework.py -z {}".format(out_dir), shell=True,stdout=subprocess.DEVNULL,stderr=subprocess.STDOUT)
+  f = open(fram_log_file, "a")
+  subprocess.run("python framework.py -z {}".format(out_dir), shell=True,stdout=f,stderr=subprocess.STDOUT)
+  f.close()
 
 def run_power_framework(params):
   log_exec('Power evaluation with param {:s}...\n'.format(str(params)))
   dump(params,out_dir+'params.sav')
-  subprocess.run("python framework.py -p {}".format(out_dir), shell=True,stdout=subprocess.DEVNULL,stderr=subprocess.STDOUT)
+  f = open(fram_log_file, "a")
+  subprocess.run("python framework.py -p {}".format(out_dir), shell=True,stdout=f,stderr=subprocess.STDOUT)
+  f.close()
   power_perf = load(out_dir+'power.sav')
   return power_perf
 
-def run_optimization(update_output_dir):
+def clear_output_dir(update_output_dir):
   global out_dir
   out_dir = update_output_dir
   try:
     os.mkdir(out_dir)
   except FileExistsError:
     print(out_dir ,  " already exists")
-  global full_log_file
   global exec_log_file
   global data_log_file
   global opti_log_file
-  full_log_file = out_dir+full_file_name
+  global fram_log_file
   exec_log_file = out_dir+exec_file_name
   data_log_file = out_dir+data_file_name
   opti_log_file = out_dir+opti_file_name
+  fram_log_file = out_dir+fram_file_name
   
   f = open(exec_log_file, "w")
   f.close()
   f = open(data_log_file, "w")
   f.close()
-  f = open(full_log_file, "w")
-  f.close()
   f = open(opti_log_file, "w")
   f.close()
-  
+  f = open(fram_log_file, "w")
+  f.close()
+
+def run_optimization(update_output_dir):
+  clear_output_dir(update_output_dir)
   print('Start optimization')
   
   global accumulator_perf
@@ -250,15 +266,55 @@ def run_optimization(update_output_dir):
   save_state(start)
   
   bounds = list()
-  bounds.append((0.01,0.99))
-  bounds.append((0.01,0.99))
-  bounds.append((0.01,0.99))
+  bounds.append((0.05,0.95))
+  bounds.append((0.05,0.95))
+  bounds.append((0.05,0.95))
   
+#  res=optimize.minimize(power, np.array(start), method="SLSQP",
+#                     constraints=constraints, bounds=bounds, callback = save_state, options={'disp': True ,'eps' : 1e-2, 'ftol' : 1e-3, 'maxiter' : 15, 'iprint': 100})
   res=optimize.minimize(power, np.array(start), method="SLSQP",
-                     constraints=constraints, bounds=bounds, callback = save_state, options={'disp': True ,'eps' : 1e-2, 'ftol' : 1e-3, 'maxiter' : 30})
+                     constraints=constraints, jac="3-point", bounds=bounds, callback = save_state, options={'disp': True ,'eps' : 5e-2, 'ftol' : 1e-3, 'maxiter' : 15, 'iprint': 100})
                      
   print('Optimization done')
   
   print(res)
   
   dump(res,out_dir+'result.sav')
+  
+  return(res)
+
+def run_optimization_trust(update_output_dir):
+  clear_output_dir(update_output_dir)
+  print('Start optimization')
+  
+  global accumulator_perf
+  global accumulator_constr
+  global accumulator_state
+  accumulator_perf = list()
+  accumulator_constr = list()
+  accumulator_state = list()
+  
+  global iteration
+  iteration = 0
+  
+  nonlinear_constraint_2 = NonlinearConstraint(constraint_2, 0, np.inf)
+  nonlinear_constraint_3 = NonlinearConstraint(constraint_3, 0, np.inf)
+  nonlinear_constraint_4 = NonlinearConstraint(constraint_4, 0, np.inf)
+  nonlinear_constraint_5 = NonlinearConstraint(constraint_5, 0, np.inf)
+  constraints = [nonlinear_constraint_2, nonlinear_constraint_3, nonlinear_constraint_4, nonlinear_constraint_5]
+  
+  start = [0.79+0.02*random.random(),0.79+0.02*random.random(),0.79+0.02*random.random()]
+  save_state(start)
+  
+  bounds = Bounds([0.05,0.95], [0.05,0.95], [0.05,0.95])
+  
+  res=optimize.minimize(power, np.array(start), method="trust-constr",
+                     constraints=constraints, jac="2-point", bounds=bounds, callback = save_state_trust, tol = 0.001, options={'disp': True ,'initial_tr_radius': 0.1, 'finite_diff_rel_step' : 0.05, 'maxiter' : 15, 'verbose': 3})
+                     
+  print('Optimization done')
+  
+  print(res)
+  
+  dump(res,out_dir+'result.sav')
+  
+  return(res)

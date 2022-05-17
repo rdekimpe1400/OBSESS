@@ -91,12 +91,14 @@ def run_framework_all_records(params = None, save_features=True, run_set = "both
 def embedded_run(path=None):
   params = load(path+'params.sav')
   print(params)
+  print('Evaluating inference for {:s}...\n'.format(str(params)),flush=True)
   det_sen,det_ppv,cm,_ = run_framework_all_records(params = params,save_features=False,run_set="test")
   print(params)
   dump([det_sen,det_ppv,cm,params],path+'perf.sav')
 
 def embedded_train(path=None):
   params = load(path+'params.sav')
+  print('Training framework with {:s}...\n'.format(str(params)),flush=True)
   run_framework_all_records(params = params.copy(),save_features=True,run_set="train")
   SVMtrain.trainSVM(params = params)
   SVMtrain.updateModel(params = params)
@@ -104,7 +106,8 @@ def embedded_train(path=None):
 
 def embedded_power(path=None):
   params = load(path+'params.sav')
-  power_tot,_,_ = powerModel.powerModel(params = params)
+  print('Evaluating power for {:s}...\n'.format(str(params)),flush=True)
+  power_tot,_,_= powerModel.powerModel(params = params)
   dump(power_tot,path+'power.sav')
 
 def trainModel(): 
