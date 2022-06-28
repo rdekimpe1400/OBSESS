@@ -149,7 +149,7 @@ def save_state(x):
   f.write("\n")
   f.close()
 
-def save_state_trust(x,optimize.OptimizeResult state):
+def save_state_trust(x,state):
   global iteration
   iteration = iteration+1
   power_perf = power(x)
@@ -160,10 +160,10 @@ def save_state_trust(x,optimize.OptimizeResult state):
   f = open(opti_log_file, "a")
   f.write("{:4d} ".format(iteration))
   f.write("[{:.10f} {:.10f} {:.10f}] ".format(x[0],x[1],x[2]))
-  for i in range(0,len(inference_perf)):
-    f.write("{:.10f} ".format(inference_perf[i]))
+  f.write("{:.10f} {:.10f} {:.10f} {:.10f} ".format(constraint_2(x),constraint_3(x),constraint_4(x),constraint_5(x)))
   f.write("{:.10f}".format(power_perf))
   f.write("\n")
+  f.write("{} \n".format(str(state)))
   f.close()
 
 def execute_framework(x):
@@ -262,7 +262,8 @@ def run_optimization(update_output_dir):
   constraints.append({"fun": constraint_4, "type": "ineq"})
   constraints.append({"fun": constraint_5, "type": "ineq"})
   
-  start = [0.79+0.02*random.random(),0.79+0.02*random.random(),0.79+0.02*random.random()]
+  #start = [0.79+0.02*random.random(),0.79+0.02*random.random(),0.79+0.02*random.random()]
+  start = [0.79+0.02*random.random(),0.79+0.02*random.random(),0.59+0.02*random.random()]
   save_state(start)
   
   bounds = list()
@@ -273,7 +274,7 @@ def run_optimization(update_output_dir):
 #  res=optimize.minimize(power, np.array(start), method="SLSQP",
 #                     constraints=constraints, bounds=bounds, callback = save_state, options={'disp': True ,'eps' : 1e-2, 'ftol' : 1e-3, 'maxiter' : 15, 'iprint': 100})
   res=optimize.minimize(power, np.array(start), method="SLSQP",
-                     constraints=constraints, jac="3-point", bounds=bounds, callback = save_state, options={'disp': True ,'eps' : 5e-2, 'ftol' : 1e-3, 'maxiter' : 15, 'iprint': 100})
+                     constraints=constraints, bounds=bounds, callback = save_state, options={'disp': True ,'eps' : 5e-2, 'ftol' : 1e-3, 'maxiter' : 15, 'iprint': 100})
                      
   print('Optimization done')
   
@@ -297,19 +298,23 @@ def run_optimization_trust(update_output_dir):
   global iteration
   iteration = 0
   
-  nonlinear_constraint_2 = NonlinearConstraint(constraint_2, 0, np.inf)
-  nonlinear_constraint_3 = NonlinearConstraint(constraint_3, 0, np.inf)
-  nonlinear_constraint_4 = NonlinearConstraint(constraint_4, 0, np.inf)
-  nonlinear_constraint_5 = NonlinearConstraint(constraint_5, 0, np.inf)
+  nonlinear_constraint_2 = optimize.NonlinearConstraint(constraint_2, 0, np.inf)
+  nonlinear_constraint_3 = optimize.NonlinearConstraint(constraint_3, 0, np.inf)
+  nonlinear_constraint_4 = optimize.NonlinearConstraint(constraint_4, 0, np.inf)
+  nonlinear_constraint_5 = optimize.NonlinearConstraint(constraint_5, 0, np.inf)
   constraints = [nonlinear_constraint_2, nonlinear_constraint_3, nonlinear_constraint_4, nonlinear_constraint_5]
   
-  start = [0.79+0.02*random.random(),0.79+0.02*random.random(),0.79+0.02*random.random()]
+  start = [0.79+0.02*random.random(),0.79+0.02*random.random(),0.59+0.02*random.random()]
   save_state(start)
   
-  bounds = Bounds([0.05,0.95], [0.05,0.95], [0.05,0.95])
+  bounds = optimize.Bounds([0.05,0.05,0.05], [0.95,0.95,0.95])
   
+  #res=optimize.minimize(power, np.array(start), method="trust-constr",
+  #                   constraints=constraints, jac="2-point", bounds=bounds, callback = save_state_trust, tol = 0.001, 
+  #                   options={'disp': True ,'initial_tr_radius': 0.1, 'finite_diff_rel_step' : 0.05, 'maxiter' : 15, 'verbose': 3})
   res=optimize.minimize(power, np.array(start), method="trust-constr",
-                     constraints=constraints, jac="2-point", bounds=bounds, callback = save_state_trust, tol = 0.001, options={'disp': True ,'initial_tr_radius': 0.1, 'finite_diff_rel_step' : 0.05, 'maxiter' : 15, 'verbose': 3})
+                     constraints=constraints, jac="2-point", bounds=bounds, callback = save_state_trust, tol = 1e-8, 
+                     options={'disp': True ,'initial_tr_radius': 1, 'finite_diff_rel_step' : 0.05, 'maxiter' : 15, 'verbose': 3})
                      
   print('Optimization done')
   
