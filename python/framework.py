@@ -104,6 +104,12 @@ def embedded_train(path=None):
   SVMtrain.updateModel(params = params)
   os.system("cd {} && rm -r build && python setupECG.py install".format(params['SVM_library']))
 
+def embedded_reload(path=None):
+  params = load(path+'params.sav')
+  print('Reloading classifier with {:s}...\n'.format(str(params)),flush=True)
+  SVMtrain.updateModel(params = params)
+  os.system("cd {} && rm -r build && python setupECG.py install".format(params['SVM_library']))
+
 def embedded_power(path=None):
   params = load(path+'params.sav')
   print('Evaluating power for {:s}...\n'.format(str(params)),flush=True)
@@ -144,11 +150,12 @@ def print_help():
   print(" -s (--save)    >> Save features ")
   print(" -e (--embed_run)     >> Run framework from other python thread")
   print(" -z (--embed_train)   >> Train framework from other python thread")
+  print(" -l (--embed_reload)   >> Reload classifier from other python thread")
   print(" -p (--embed_power)   >> Run power framework from other python thread")
 
 if __name__ == "__main__":
   try:
-    opts, args = getopt.getopt(sys.argv[1:],"ha:r:vtcfe:z:sp:",["help","all=","record=","verbose","train","compile","figures","embed_run=","embed_train=","save","embed_power="])
+    opts, args = getopt.getopt(sys.argv[1:],"ha:r:vtcfe:z:sp:l:",["help","all=","record=","verbose","train","compile","figures","embed_run=","embed_train=","save","embed_power=","embed_reload="])
   except getopt.GetoptError:
     print_help()
     sys.exit(2)
@@ -163,6 +170,7 @@ if __name__ == "__main__":
   embed_run=False
   embed_train=False
   embed_power = False
+  embed_reload = False
   set = 'test'
   save = False
   
@@ -199,6 +207,9 @@ if __name__ == "__main__":
       elif opt in ("-p", "--embed_power"):
         embed_power=True
         path = arg
+      elif opt in ("-l", "--embed_reload"):
+        embed_reload=True
+        path = arg
   else:
     run = True
   
@@ -220,6 +231,8 @@ if __name__ == "__main__":
     embedded_train(path=path)
   if embed_power:
     embedded_power(path=path)
+  if embed_reload:
+    embedded_reload(path=path)
       
   end_time = time.time()
   print('Total execution time: {:5.3f} seconds'.format(end_time-start_time))

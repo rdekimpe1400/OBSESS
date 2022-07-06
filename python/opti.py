@@ -16,6 +16,7 @@ from importlib import reload
 import os
 from src import default
 from src import data
+import shutil
 
 #######################
 # Optimization parameters
@@ -65,13 +66,35 @@ def norm_param(x):
   SVM_pruning = SVM_pruning_range[1] - x[2]*(SVM_pruning_range[1]-SVM_pruning_range[0])
   params['SVM_pruning_D'] = SVM_pruning
   
-def power(x):
-  _, power_perf = execute_framework(x)
+def power(x,train=True):
+  _, power_perf = execute_framework(x,train=train)
   return np.log10(power_perf)
   
 def inference(x):
   inference_perf, _ = execute_framework(x)
   return inference_perf
+
+def power_gradient(x):
+  log_exec("Gradient evaluation on point [{:.10f} {:.10f} {:.10f}]...\n".format(x[0],x[1],x[2]))
+  step = 0.05
+  power_0 = power(x)
+  train_vec = [False, False, True]
+  grad = np.zeros(len(x))
+  for i in range(0,len(x)):
+    delta = np.zeros(len(x))
+    delta[i] = 1
+    delta = delta*step
+    if not train_vec[i]:
+      load_cls(x)
+      norm_param(x)
+      dump(params,out_dir+'params.sav')
+      f = open(fram_log_file, "a")
+      subprocess.run("python framework.py -l {}".format(out_dir), shell=True,stdout=f,stderr=subprocess.STDOUT)
+      f.close()
+    power_delta = power(x+delta,train = train_vec[i])
+    grad[i] = (power_delta-power_0)/step
+  log_exec("Gradient value = [{:f} {:f} {:f}]\n".format(grad[0],grad[1],grad[2]))
+  return grad
 
 def constraint_0(x):
   val = constraint(x,0)
@@ -132,6 +155,22 @@ def fetch_data(x):
           return np.array(d[0][2:].split(" ")[:-1]).astype(np.float), np.array(d[0][2:].split(" ")[-1]).astype(np.float)
   return None, None
 
+def save_cls(x):
+  shutil.copyfile('scaler_S.sav',out_dir+'cls/scaler_S_{:.10f}_{:.10f}_{:.10f}.sav'.format(x[0],x[1],x[2]))
+  shutil.copyfile('clf_S.sav',out_dir+'cls/clf_S_{:.10f}_{:.10f}_{:.10f}.sav'.format(x[0],x[1],x[2]))
+  shutil.copyfile('params_S.sav',out_dir+'cls/params_S_{:.10f}_{:.10f}_{:.10f}.sav'.format(x[0],x[1],x[2]))
+  shutil.copyfile('scaler_V.sav',out_dir+'cls/scaler_V_{:.10f}_{:.10f}_{:.10f}.sav'.format(x[0],x[1],x[2]))
+  shutil.copyfile('clf_V.sav',out_dir+'cls/clf_V_{:.10f}_{:.10f}_{:.10f}.sav'.format(x[0],x[1],x[2]))
+  shutil.copyfile('params_V.sav',out_dir+'cls/params_V_{:.10f}_{:.10f}_{:.10f}.sav'.format(x[0],x[1],x[2]))
+
+def load_cls(x):
+  shutil.copyfile(out_dir+'cls/scaler_S_{:.10f}_{:.10f}_{:.10f}.sav'.format(x[0],x[1],x[2]),'scaler_S.sav')
+  shutil.copyfile(out_dir+'cls/clf_S_{:.10f}_{:.10f}_{:.10f}.sav'.format(x[0],x[1],x[2]),'clf_S.sav')
+  shutil.copyfile(out_dir+'cls/params_S_{:.10f}_{:.10f}_{:.10f}.sav'.format(x[0],x[1],x[2]),'params_S.sav')
+  shutil.copyfile(out_dir+'cls/scaler_V_{:.10f}_{:.10f}_{:.10f}.sav'.format(x[0],x[1],x[2]),'scaler_V.sav')
+  shutil.copyfile(out_dir+'cls/clf_V_{:.10f}_{:.10f}_{:.10f}.sav'.format(x[0],x[1],x[2]),'clf_V.sav')
+  shutil.copyfile(out_dir+'cls/params_V_{:.10f}_{:.10f}_{:.10f}.sav'.format(x[0],x[1],x[2]),'params_V.sav')
+
 def save_state(x):
   global iteration
   iteration = iteration+1
@@ -166,7 +205,7 @@ def save_state_trust(x,state):
   f.write("{} \n".format(str(state)))
   f.close()
 
-def execute_framework(x):
+def execute_framework(x,train=True):
   log_exec("Fetching data for point [{:.10f} {:.10f} {:.10f}]\n".format(x[0],x[1],x[2]))
   inference_perf, power_perf = fetch_data(x)
   if inference_perf is not None:
@@ -175,7 +214,9 @@ def execute_framework(x):
   else:
     norm_param(x)
     log_exec('Previous data not found. Executing framework with {:s}...\n'.format(str(params)))
-    train_inference_framework(params)
+    if(train):
+      train_inference_framework(params)
+      save_cls(x)
     inference_perf = run_inference_framework()
     power_perf = run_power_framework(params)
     dump_data(x,inference_perf, power_perf)
@@ -222,6 +263,7 @@ def clear_output_dir(update_output_dir):
   out_dir = update_output_dir
   try:
     os.mkdir(out_dir)
+    os.mkdir(out_dir+'cls/')
   except FileExistsError:
     print(out_dir ,  " already exists")
   global exec_log_file
@@ -273,7 +315,7 @@ def run_optimization(update_output_dir):
   
 #  res=optimize.minimize(power, np.array(start), method="SLSQP",
 #                     constraints=constraints, bounds=bounds, callback = save_state, options={'disp': True ,'eps' : 1e-2, 'ftol' : 1e-3, 'maxiter' : 15, 'iprint': 100})
-  res=optimize.minimize(power, np.array(start), method="SLSQP",
+  res=optimize.minimize(power, np.array(start), method="SLSQP", jac=power_gradient,
                      constraints=constraints, bounds=bounds, callback = save_state, options={'disp': True ,'eps' : 5e-2, 'ftol' : 1e-3, 'maxiter' : 15, 'iprint': 100})
                      
   print('Optimization done')
