@@ -35,6 +35,7 @@ int init_signal_buffer(){
 // Push new sample in the signal buffer
 void push_sample(int16_t sample, int label_gold){ 
   // Store data
+  //printf("%d\n",sample);
   signalBuf[signalBufIdx] = sample;
   if(signalBufIdx<SIGNAL_SEGMENT_LENGTH){
     signalBuf[signalBufIdx+SIGNAL_BUFFER_LENGTH] = sample;

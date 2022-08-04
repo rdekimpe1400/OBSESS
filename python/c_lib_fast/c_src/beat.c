@@ -95,8 +95,8 @@ int beat_get_amplitude(beat_t* beat){
 }
 
 // Increment delay
-int16_t beat_inc_delay(beat_t* beat){
-  beat->delay++;
+int16_t beat_inc_delay(beat_t* beat, int incr){
+  beat->delay += incr;
 	return 0;
 }
 

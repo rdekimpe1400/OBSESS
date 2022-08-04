@@ -54,6 +54,9 @@ def digitalBackEndModel(ECG,time, annotations, params = {}, showFigures = False)
   #for i in range(0,len(ann_time)):
   #  print(ann_time[i],ann_labels[i])
   
+  #for i in range(0,len(det_time)):
+  #  print(det_time[i])
+  
   if showFigures:
     fig, axs = plt.subplots(2, sharex=True)
     axs[0].plot(time,label_gold,'.')

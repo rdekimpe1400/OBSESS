@@ -14,16 +14,29 @@ if __name__ == "__main__":
   opti.params = default.default_parameters()
   opti.params['input_scale'] = scale_signal
   
-  opti.execute_framework([0,0,0])
+  opti.execute_framework([0,0.5,0.5])
+  opti.execute_framework([0.5,0,0.5])
+  opti.execute_framework([0.5,0.5,0])
   
-  scale_max=4
+  scale_max=5
   for scale in range(0,scale_max+1):
     n_steps = np.power(2,scale)
     for i in range(0,n_steps+1):
-      for j in range(0,n_steps+1):
-        for k in range(0,n_steps+1):
-          if (np.mod(i,2)>0) or (np.mod(j,2)>0) or (np.mod(k,2)>0):
-            opti.execute_framework([i/n_steps, j/n_steps, k/n_steps])
+      if (np.mod(i,2)>0):
+        opti.execute_framework([i/n_steps,0.5,0.5])
+        opti.execute_framework([0.5,i/n_steps,0.5])
+        opti.execute_framework([0.5,0.5,i/n_steps])
+
+#  opti.execute_framework([0,0,0])
+#  
+#  scale_max=4
+#  for scale in range(0,scale_max+1):
+#    n_steps = np.power(2,scale)
+#    for i in range(0,n_steps+1):
+#      for j in range(0,n_steps+1):
+#        for k in range(0,n_steps+1):
+#          if (np.mod(i,2)>0) or (np.mod(j,2)>0) or (np.mod(k,2)>0):
+#            opti.execute_framework([i/n_steps, j/n_steps, k/n_steps])
 
 #  D = 0.5
 #  opti.params = default.default_parameters()

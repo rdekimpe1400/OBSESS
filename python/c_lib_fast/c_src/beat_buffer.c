@@ -62,10 +62,10 @@ void add_beat(int16_t delay){
 }
 
 // Increment delays in the beat delay buffer by 1
-void increment_beat_delay(){ 
+void increment_beat_delay(int incr){ 
   int i = 0;
   for(i=0;i<beatBufCnt;i++){
-    beat_inc_delay(beatBuf[i]);
+    beat_inc_delay(beatBuf[i], incr);
   }
 }
 

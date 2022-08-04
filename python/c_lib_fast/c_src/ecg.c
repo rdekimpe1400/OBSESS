@@ -14,6 +14,7 @@ REVISED:	06/2020
 #include "qrsdet.h"
 #include "feature_extract.h" 
 #include "svm.h"
+#include "upsample.h" 
 
 int16_t* ECG_wrapper( int sample, int label_gold, int* delay, int* output, int* gold_label){
   int ecg_transform = 0;
@@ -22,6 +23,9 @@ int16_t* ECG_wrapper( int sample, int label_gold, int* delay, int* output, int* 
   int detection_delay = 0;
   int16_t* features = 0;
   int amplitude = 0;
+  int16_t* upsample_buffer;
+  int upsample_buffer_length;
+  int i = 0;
   
   *output = 0;
   *delay = 0;
@@ -31,22 +35,29 @@ int16_t* ECG_wrapper( int sample, int label_gold, int* delay, int* output, int* 
   // QRS beat enhancement for detection
   ecg_transform=QRSFilter(ecg, 0,&ecg_filt );
   
+  // Upsample
+  upsample_buffer = upsample(ecg_filt, &upsample_buffer_length);
+  
   // Put new sample in signal buffer
-  push_sample(ecg_filt, label_gold);
+  for(i = 0; i<upsample_buffer_length; i++){
+    push_sample(upsample_buffer[i], label_gold);
+  }
   
   // QRS detection
   detection_delay=QRSDet(ecg, ecg_transform,0 ) ; 
   
   // If beat is detected, add it in beat buffer
   if(detection_delay){
-    detection_delay = detection_delay;// - ((HPBUFFER_LGTH+LPBUFFER_LGTH)>>1);//add filter delay
+    //detection_delay = detection_delay;// - ((HPBUFFER_LGTH+LPBUFFER_LGTH)>>1);//add filter delay
+    detection_delay = (detection_delay<<LOG2_N)/M;
     add_beat(detection_delay);
   }
   
   // If an old beat can be classified (post-RR interval available, post-QRS window signal available), process it
   if(is_beat_ready()){
     features = buffer_get_features(&amplitude);
-    *delay = pop_beat(gold_label);
+    //*delay = pop_beat(gold_label);
+    *delay = (pop_beat(gold_label)*M)>>LOG2_N;
     //features = extract_features();
     //features_select = select_features(features);  
     *output=svm_predict(features );
@@ -55,7 +66,7 @@ int16_t* ECG_wrapper( int sample, int label_gold, int* delay, int* output, int* 
   }
   
   // Increment beat delays in buffer
-  increment_beat_delay();
+  increment_beat_delay(upsample_buffer_length);
   
   return features;
 }

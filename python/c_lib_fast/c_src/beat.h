@@ -23,7 +23,7 @@ beat_t* beat_get_next_beat(beat_t* beat);
 int16_t* beat_get_signal(beat_t* beat);
 int beat_get_amplitude(beat_t* beat);
 int beat_get_gold_label(beat_t* beat);
-int16_t beat_inc_delay(beat_t* beat);
+int16_t beat_inc_delay(beat_t* beat, int incr);
 int delete_beat(beat_t* beat);
 int print_beat(beat_t* beat);
 
