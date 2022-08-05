@@ -27,6 +27,7 @@ IA_noise_range = [0.6e-6, 30e-6]
 ADC_resolution_range = [7, 14]
 SVM_pruning_range = [-1.5, 3]
 FREQ_range = [10, 200]
+FEAT_range = [1,10]
 
 # Constraints
 alpha = 0.5
@@ -73,6 +74,11 @@ def norm_param(x):
   params['ADC_Fs'] = freq
   changeFrequency(freq)
   
+  #FEAT
+  feat = FEAT_range[0] + x[4]*(FEAT_range[1]-FEAT_range[0])
+  params['SVM_feature_N_V'] = round(feat)
+  params['SVM_feature_N_S'] = round(feat)
+  
 def power(x,train=True):
   _, power_perf = execute_framework(x,train=train)
   return np.log10(power_perf)
@@ -82,10 +88,10 @@ def inference(x,train=True):
   return inference_perf
 
 def power_gradient(x):
-  log_exec("Power gradient evaluation on point [{:.10f} {:.10f} {:.10f} {:.10f}]...\n".format(x[0],x[1],x[2],x[3]))
+  log_exec("Power gradient evaluation on point [{:.10f} {:.10f} {:.10f} {:.10f} {:.10f}]...\n".format(x[0],x[1],x[2],x[3],x[4]))
   step = -0.05
   power_0 = power(x)
-  train_vec = [False, False, True, False]
+  train_vec = [False, False, True, False, True]
   grad = np.zeros(len(x))
   for i in range(0,len(x)):
     delta = np.zeros(len(x))
@@ -100,14 +106,14 @@ def power_gradient(x):
       f.close()
     power_delta = power(x+delta,train = train_vec[i])
     grad[i] = (power_delta-power_0)/step
-  log_exec("Gradient value = [{:f} {:f} {:f} {:f}]\n".format(grad[0],grad[1],grad[2],grad[3]))
+  log_exec("Gradient value = [{:f} {:f} {:f} {:f} {:f}]\n".format(grad[0],grad[1],grad[2],grad[3],grad[4]))
   return grad
 
 def constraint_gradient(x,c):
-  log_exec("Constraint ({:d}) gradient evaluation on point [{:.10f} {:.10f} {:.10f} {:.10f}]...\n".format(c,x[0],x[1],x[2],x[3]))
+  log_exec("Constraint ({:d}) gradient evaluation on point [{:.10f} {:.10f} {:.10f} {:.10f} {:.10f}]...\n".format(c,x[0],x[1],x[2],x[3],x[4]))
   step = -0.05
   constr_0 = constraint(x,c)
-  train_vec = [False, False, True, False]
+  train_vec = [False, False, True, False, True]
   grad = np.zeros(len(x))
   for i in range(0,len(x)):
     delta = np.zeros(len(x))
@@ -122,7 +128,7 @@ def constraint_gradient(x,c):
       f.close()
     constr_delta = constraint(x+delta,c,train = train_vec[i])
     grad[i] = (constr_delta-constr_0)/step
-  log_exec("Gradient value = [{:f} {:f} {:f} {:f}]\n".format(grad[0],grad[1],grad[2],grad[3]))
+  log_exec("Gradient value = [{:f} {:f} {:f} {:f} {:f}]\n".format(grad[0],grad[1],grad[2],grad[3],grad[4]))
   return grad
 
 def constraint_0(x):
@@ -174,7 +180,7 @@ def constraint_grad_5(x):
   return val
   
 def constraint(x,i,train=True):
-  log_exec("Constraint ({}) evaluation on point [{:.10f} {:.10f} {:.10f} {:.10f}]...\n".format(i,x[0],x[1],x[2],x[3]))
+  log_exec("Constraint ({}) evaluation on point [{:.10f} {:.10f} {:.10f} {:.10f} {:.10f}]...\n".format(i,x[0],x[1],x[2],x[3],x[4]))
   accumulator_constr.append([i,x])
   dump(accumulator_constr,out_dir+'accumulator_constr.sav')
   
@@ -192,7 +198,7 @@ def log_exec(string):
 
 def dump_data(x,inference_perf, power_perf):
   f = open(data_log_file, "a")
-  f.write("[{:.10f} {:.10f} {:.10f} {:.10f}] ".format(x[0],x[1],x[2],x[3]))
+  f.write("[{:.10f} {:.10f} {:.10f} {:.10f} {:.10f}] ".format(x[0],x[1],x[2],x[3],x[4]))
   for i in range(0,len(inference_perf)):
     f.write("{:.10f} ".format(inference_perf[i]))
   f.write("{:.10f}".format(power_perf))
@@ -204,25 +210,25 @@ def fetch_data(x):
     for line in fp:
         p=re.findall("\[.*\]", line)
         d=re.findall("\].*", line)
-        if p[0]=="[{:.10f} {:.10f} {:.10f} {:.10f}]".format(x[0],x[1],x[2],x[3]):
+        if p[0]=="[{:.10f} {:.10f} {:.10f} {:.10f} {:.10f}]".format(x[0],x[1],x[2],x[3],x[4]):
           return np.array(d[0][2:].split(" ")[:-1]).astype(np.float), np.array(d[0][2:].split(" ")[-1]).astype(np.float)
   return None, None
 
 def save_cls(x):
-  shutil.copyfile('scaler_S.sav',out_dir+'cls/scaler_S_{:.10f}_{:.10f}_{:.10f}_{:.10f}.sav'.format(x[0],x[1],x[2],x[3]))
-  shutil.copyfile('clf_S.sav',out_dir+'cls/clf_S_{:.10f}_{:.10f}_{:.10f}_{:.10f}.sav'.format(x[0],x[1],x[2],x[3]))
-  shutil.copyfile('params_S.sav',out_dir+'cls/params_S_{:.10f}_{:.10f}_{:.10f}_{:.10f}.sav'.format(x[0],x[1],x[2],x[3]))
-  shutil.copyfile('scaler_V.sav',out_dir+'cls/scaler_V_{:.10f}_{:.10f}_{:.10f}_{:.10f}.sav'.format(x[0],x[1],x[2],x[3]))
-  shutil.copyfile('clf_V.sav',out_dir+'cls/clf_V_{:.10f}_{:.10f}_{:.10f}_{:.10f}.sav'.format(x[0],x[1],x[2],x[3]))
-  shutil.copyfile('params_V.sav',out_dir+'cls/params_V_{:.10f}_{:.10f}_{:.10f}_{:.10f}.sav'.format(x[0],x[1],x[2],x[3]))
+  shutil.copyfile('scaler_S.sav',out_dir+'cls/scaler_S_{:.10f}_{:.10f}_{:.10f}_{:.10f}_{:.10f}.sav'.format(x[0],x[1],x[2],x[3],x[4]))
+  shutil.copyfile('clf_S.sav',out_dir+'cls/clf_S_{:.10f}_{:.10f}_{:.10f}_{:.10f}_{:.10f}.sav'.format(x[0],x[1],x[2],x[3],x[4]))
+  shutil.copyfile('params_S.sav',out_dir+'cls/params_S_{:.10f}_{:.10f}_{:.10f}_{:.10f}_{:.10f}.sav'.format(x[0],x[1],x[2],x[3],x[4]))
+  shutil.copyfile('scaler_V.sav',out_dir+'cls/scaler_V_{:.10f}_{:.10f}_{:.10f}_{:.10f}_{:.10f}.sav'.format(x[0],x[1],x[2],x[3],x[4]))
+  shutil.copyfile('clf_V.sav',out_dir+'cls/clf_V_{:.10f}_{:.10f}_{:.10f}_{:.10f}_{:.10f}.sav'.format(x[0],x[1],x[2],x[3],x[4]))
+  shutil.copyfile('params_V.sav',out_dir+'cls/params_V_{:.10f}_{:.10f}_{:.10f}_{:.10f}_{:.10f}.sav'.format(x[0],x[1],x[2],x[3],x[4]))
 
 def load_cls(x):
-  shutil.copyfile(out_dir+'cls/scaler_S_{:.10f}_{:.10f}_{:.10f}_{:.10f}.sav'.format(x[0],x[1],x[2],x[3]),'scaler_S.sav')
-  shutil.copyfile(out_dir+'cls/clf_S_{:.10f}_{:.10f}_{:.10f}_{:.10f}.sav'.format(x[0],x[1],x[2],x[3]),'clf_S.sav')
-  shutil.copyfile(out_dir+'cls/params_S_{:.10f}_{:.10f}_{:.10f}_{:.10f}.sav'.format(x[0],x[1],x[2],x[3]),'params_S.sav')
-  shutil.copyfile(out_dir+'cls/scaler_V_{:.10f}_{:.10f}_{:.10f}_{:.10f}.sav'.format(x[0],x[1],x[2],x[3]),'scaler_V.sav')
-  shutil.copyfile(out_dir+'cls/clf_V_{:.10f}_{:.10f}_{:.10f}_{:.10f}.sav'.format(x[0],x[1],x[2],x[3]),'clf_V.sav')
-  shutil.copyfile(out_dir+'cls/params_V_{:.10f}_{:.10f}_{:.10f}_{:.10f}.sav'.format(x[0],x[1],x[2],x[3]),'params_V.sav')
+  shutil.copyfile(out_dir+'cls/scaler_S_{:.10f}_{:.10f}_{:.10f}_{:.10f}_{:.10f}.sav'.format(x[0],x[1],x[2],x[3],x[4]),'scaler_S.sav')
+  shutil.copyfile(out_dir+'cls/clf_S_{:.10f}_{:.10f}_{:.10f}_{:.10f}_{:.10f}.sav'.format(x[0],x[1],x[2],x[3],x[4]),'clf_S.sav')
+  shutil.copyfile(out_dir+'cls/params_S_{:.10f}_{:.10f}_{:.10f}_{:.10f}_{:.10f}.sav'.format(x[0],x[1],x[2],x[3],x[4]),'params_S.sav')
+  shutil.copyfile(out_dir+'cls/scaler_V_{:.10f}_{:.10f}_{:.10f}_{:.10f}_{:.10f}.sav'.format(x[0],x[1],x[2],x[3],x[4]),'scaler_V.sav')
+  shutil.copyfile(out_dir+'cls/clf_V_{:.10f}_{:.10f}_{:.10f}_{:.10f}_{:.10f}.sav'.format(x[0],x[1],x[2],x[3],x[4]),'clf_V.sav')
+  shutil.copyfile(out_dir+'cls/params_V_{:.10f}_{:.10f}_{:.10f}_{:.10f}_{:.10f}.sav'.format(x[0],x[1],x[2],x[3],x[4]),'params_V.sav')
 
 def save_state(x):
   global iteration
@@ -234,7 +240,7 @@ def save_state(x):
   dump(accumulator_state,out_dir+'accumulator_state.sav')
   f = open(opti_log_file, "a")
   f.write("{:4d} ".format(iteration))
-  f.write("[{:.10f} {:.10f} {:.10f} {:.10f}] ".format(x[0],x[1],x[2],x[3]))
+  f.write("[{:.10f} {:.10f} {:.10f} {:.10f} {:.10f}] ".format(x[0],x[1],x[2],x[3],x[4]))
   for i in range(0,len(inference_perf)):
     f.write("{:.10f} ".format(inference_perf[i]))
   f.write("{:.10f}".format(power_perf))
@@ -251,7 +257,7 @@ def save_state_trust(x,state):
   dump(accumulator_state,out_dir+'accumulator_state.sav')
   f = open(opti_log_file, "a")
   f.write("{:4d} ".format(iteration))
-  f.write("[{:.10f} {:.10f} {:.10f} {:.10f}] ".format(x[0],x[1],x[2],x[3]))
+  f.write("[{:.10f} {:.10f} {:.10f} {:.10f} {:.10f}] ".format(x[0],x[1],x[2],x[3],x[4]))
   f.write("{:.10f} {:.10f} {:.10f} {:.10f} ".format(constraint_2(x),constraint_3(x),constraint_4(x),constraint_5(x)))
   f.write("{:.10f}".format(power_perf))
   f.write("\n")
@@ -259,7 +265,7 @@ def save_state_trust(x,state):
   f.close()
 
 def execute_framework(x,train=True):
-  log_exec("Fetching data for point [{:.10f} {:.10f} {:.10f} {:.10f}]\n".format(x[0],x[1],x[2],x[3]))
+  log_exec("Fetching data for point [{:.10f} {:.10f} {:.10f} {:.10f} {:.10f}]\n".format(x[0],x[1],x[2],x[3],x[4]))
   inference_perf, power_perf = fetch_data(x)
   if inference_perf is not None:
     log_exec('Previous data found : Power [{:f}] - Inference [{:s}]\n'.format(power_perf, ' '.join([str(elem) for elem in inference_perf])))
@@ -371,7 +377,7 @@ def run_optimization(update_output_dir):
   
   #start = [0.79+0.02*random.random(),0.79+0.02*random.random(),0.79+0.02*random.random()]
   #start = [0.79+0.02*random.random(),0.79+0.02*random.random(),0.59+0.02*random.random(),0.89+0.02*random.random()]
-  start = [1.0,1.0,0.6,1.0]
+  start = [1.0,1.0,0.6,1.0,1.0]
   save_state(start)
   
   bounds = list()
