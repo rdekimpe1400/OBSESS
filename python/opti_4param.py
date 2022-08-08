@@ -5,7 +5,7 @@ import numpy as np
 from src import default
 
 if __name__ == "__main__":
-  for i in range(0,10):
+  for i in range(1,10):
     dir_name = './temp/opti_4param_{:d}/'.format(i)
     scale = 0.1
     opti.out_dir = dir_name
