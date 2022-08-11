@@ -29,6 +29,8 @@ SVM_pruning_range = [-1.5, 3]
 FREQ_range = [10, 200]
 FEAT_range = [1,10]
 
+ref_x = np.array([1.0,1.0,0.6,1.0,1.0])
+
 # Constraints
 alpha = 0.5
 th = np.array([3.65750459e-02,2.30333372e-01,9.6127057408,25.7326009026,17.0771761517,65.2602614876]) * (1+alpha)
@@ -79,108 +81,70 @@ def norm_param(x):
   params['SVM_feature_N_V'] = round(feat)
   params['SVM_feature_N_S'] = round(feat)
   
+  dump(params,out_dir+'params.sav')
+  f = open(fram_log_file, "a")
+  subprocess.run("python framework.py -l {}".format(out_dir), shell=True,stdout=f,stderr=subprocess.STDOUT)
+  f.close()
+  
 def power(x,train=True):
+  log_exec("Power evaluation on point {}...\n".format(x))
+  if len(x)<len(ref_x):
+    x=np.append(np.array(x), ref_x[len(x):])
   _, power_perf = execute_framework(x,train=train)
   return np.log10(power_perf)
   
 def inference(x,train=True):
+  if len(x)<len(ref_x):
+    x=np.append(np.array(x), ref_x[len(x):])
   inference_perf, _ = execute_framework(x,train=train)
   return inference_perf
 
 def power_gradient(x):
-  log_exec("Power gradient evaluation on point [{:.10f} {:.10f} {:.10f} {:.10f} {:.10f}]...\n".format(x[0],x[1],x[2],x[3],x[4]))
-  step = -0.05
+  log_exec("Power gradient evaluation on point {}...\n".format(x))
   power_0 = power(x)
   train_vec = [False, False, True, False, True]
+  steps = [-0.05,-0.05,-0.05,-0.05,-0.1]
   grad = np.zeros(len(x))
   for i in range(0,len(x)):
     delta = np.zeros(len(x))
     delta[i] = 1
-    delta = delta*step
+    delta = delta*steps[i]
     if not train_vec[i]:
-      load_cls(x)
-      norm_param(x)
+      load_cls(np.append(np.array(x), ref_x[len(x):]))
+      norm_param(np.append(np.array(x), ref_x[len(x):]))
       dump(params,out_dir+'params.sav')
       f = open(fram_log_file, "a")
       subprocess.run("python framework.py -l {}".format(out_dir), shell=True,stdout=f,stderr=subprocess.STDOUT)
       f.close()
     power_delta = power(x+delta,train = train_vec[i])
-    grad[i] = (power_delta-power_0)/step
-  log_exec("Gradient value = [{:f} {:f} {:f} {:f} {:f}]\n".format(grad[0],grad[1],grad[2],grad[3],grad[4]))
+    grad[i] = (power_delta-power_0)/steps[i]
+  log_exec("Gradient value = [{}]\n".format(grad))
   return grad
 
 def constraint_gradient(x,c):
-  log_exec("Constraint ({:d}) gradient evaluation on point [{:.10f} {:.10f} {:.10f} {:.10f} {:.10f}]...\n".format(c,x[0],x[1],x[2],x[3],x[4]))
-  step = -0.05
+  log_exec("Constraint ({:d}) gradient evaluation on point {}...\n".format(c,x))
   constr_0 = constraint(x,c)
   train_vec = [False, False, True, False, True]
+  steps = [-0.05,-0.05,-0.05,-0.05,-0.1]
   grad = np.zeros(len(x))
   for i in range(0,len(x)):
     delta = np.zeros(len(x))
     delta[i] = 1
-    delta = delta*step
+    delta = delta*steps[i]
     if not train_vec[i]:
-      load_cls(x)
-      norm_param(x)
+      load_cls(np.append(np.array(x), ref_x[len(x):]))
+      norm_param(np.append(np.array(x), ref_x[len(x):]))
       dump(params,out_dir+'params.sav')
       f = open(fram_log_file, "a")
       subprocess.run("python framework.py -l {}".format(out_dir), shell=True,stdout=f,stderr=subprocess.STDOUT)
       f.close()
     constr_delta = constraint(x+delta,c,train = train_vec[i])
-    grad[i] = (constr_delta-constr_0)/step
-  log_exec("Gradient value = [{:f} {:f} {:f} {:f} {:f}]\n".format(grad[0],grad[1],grad[2],grad[3],grad[4]))
+    grad[i] = (constr_delta-constr_0)/steps[i]
+  log_exec("Gradient value = [{}]\n".format(grad))
   return grad
-
-def constraint_0(x):
-  val = constraint(x,0)
-  return val
-
-def constraint_1(x):
-  val = constraint(x,1)
-  return val
-
-def constraint_2(x):
-  val = constraint(x,2)
-  return val
-
-def constraint_3(x):
-  val = constraint(x,3)
-  return val
-
-def constraint_4(x):
-  val = constraint(x,4)
-  return val
-
-def constraint_5(x):
-  val = constraint(x,5)
-  return val
-
-def constraint_grad_0(x):
-  val = constraint_gradient(x,0)
-  return val
-
-def constraint_grad_1(x):
-  val = constraint_gradient(x,1)
-  return val
-
-def constraint_grad_2(x):
-  val = constraint_gradient(x,2)
-  return val
-
-def constraint_grad_3(x):
-  val = constraint_gradient(x,3)
-  return val
-
-def constraint_grad_4(x):
-  val = constraint_gradient(x,4)
-  return val
-
-def constraint_grad_5(x):
-  val = constraint_gradient(x,5)
-  return val
   
 def constraint(x,i,train=True):
-  log_exec("Constraint ({}) evaluation on point [{:.10f} {:.10f} {:.10f} {:.10f} {:.10f}]...\n".format(i,x[0],x[1],x[2],x[3],x[4]))
+  log_exec("Constraint ({}) evaluation on point {}...\n".format(i,x))
   accumulator_constr.append([i,x])
   dump(accumulator_constr,out_dir+'accumulator_constr.sav')
   
@@ -240,28 +204,13 @@ def save_state(x):
   dump(accumulator_state,out_dir+'accumulator_state.sav')
   f = open(opti_log_file, "a")
   f.write("{:4d} ".format(iteration))
+  if len(x)<len(ref_x):
+    x=np.append(np.array(x), ref_x[len(x):])
   f.write("[{:.10f} {:.10f} {:.10f} {:.10f} {:.10f}] ".format(x[0],x[1],x[2],x[3],x[4]))
   for i in range(0,len(inference_perf)):
     f.write("{:.10f} ".format(inference_perf[i]))
   f.write("{:.10f}".format(power_perf))
   f.write("\n")
-  f.close()
-
-def save_state_trust(x,state):
-  global iteration
-  iteration = iteration+1
-  power_perf = power(x)
-  inference_perf = inference(x)
-  log_exec("--- ITERATION {:d} ---\n".format(iteration))
-  accumulator_state.append([power_perf,inference_perf,x])
-  dump(accumulator_state,out_dir+'accumulator_state.sav')
-  f = open(opti_log_file, "a")
-  f.write("{:4d} ".format(iteration))
-  f.write("[{:.10f} {:.10f} {:.10f} {:.10f} {:.10f}] ".format(x[0],x[1],x[2],x[3],x[4]))
-  f.write("{:.10f} {:.10f} {:.10f} {:.10f} ".format(constraint_2(x),constraint_3(x),constraint_4(x),constraint_5(x)))
-  f.write("{:.10f}".format(power_perf))
-  f.write("\n")
-  f.write("{} \n".format(str(state)))
   f.close()
 
 def execute_framework(x,train=True):
@@ -370,66 +319,20 @@ def run_optimization(update_output_dir):
   iteration = 0
   
   constraints = list()
-  constraints.append({"fun": constraint_2, "type": "ineq", "jac": constraint_grad_2})
-  constraints.append({"fun": constraint_3, "type": "ineq", "jac": constraint_grad_3})
-  constraints.append({"fun": constraint_4, "type": "ineq", "jac": constraint_grad_4})
-  constraints.append({"fun": constraint_5, "type": "ineq", "jac": constraint_grad_5})
+  constraints.append({"fun": constraint, "type": "ineq", "jac": constraint_gradient, "args":([2])})
+  constraints.append({"fun": constraint, "type": "ineq", "jac": constraint_gradient, "args":([3])})
+  constraints.append({"fun": constraint, "type": "ineq", "jac": constraint_gradient, "args":([4])})
+  constraints.append({"fun": constraint, "type": "ineq", "jac": constraint_gradient, "args":([5])})
   
-  #start = [0.79+0.02*random.random(),0.79+0.02*random.random(),0.79+0.02*random.random()]
-  #start = [0.79+0.02*random.random(),0.79+0.02*random.random(),0.59+0.02*random.random(),0.89+0.02*random.random()]
   start = [1.0,1.0,0.6,1.0,1.0]
   save_state(start)
   
   bounds = list()
-  bounds.append((0.05,1.0))
-  bounds.append((0.05,1.0))
-  bounds.append((0.05,1.0))
-  bounds.append((0.05,1.0))
+  for i in range(0,len(start)):
+    bounds.append((0.05,1.0))
   
-#  res=optimize.minimize(power, np.array(start), method="SLSQP",
-#                     constraints=constraints, bounds=bounds, callback = save_state, options={'disp': True ,'eps' : 1e-2, 'ftol' : 1e-3, 'maxiter' : 15, 'iprint': 100})
   res=optimize.minimize(power, np.array(start), method="SLSQP", jac=power_gradient,
                      constraints=constraints, bounds=bounds, callback = save_state, options={'disp': True ,'eps' : 5e-2, 'ftol' : 1e-3, 'maxiter' : 15, 'iprint': 100})
-                     
-  print('Optimization done')
-  
-  print(res)
-  
-  dump(res,out_dir+'result.sav')
-  
-  return(res)
-
-def run_optimization_trust(update_output_dir):
-  clear_output_dir(update_output_dir)
-  print('Start optimization')
-  
-  global accumulator_perf
-  global accumulator_constr
-  global accumulator_state
-  accumulator_perf = list()
-  accumulator_constr = list()
-  accumulator_state = list()
-  
-  global iteration
-  iteration = 0
-  
-  nonlinear_constraint_2 = optimize.NonlinearConstraint(constraint_2, 0, np.inf)
-  nonlinear_constraint_3 = optimize.NonlinearConstraint(constraint_3, 0, np.inf)
-  nonlinear_constraint_4 = optimize.NonlinearConstraint(constraint_4, 0, np.inf)
-  nonlinear_constraint_5 = optimize.NonlinearConstraint(constraint_5, 0, np.inf)
-  constraints = [nonlinear_constraint_2, nonlinear_constraint_3, nonlinear_constraint_4, nonlinear_constraint_5]
-  
-  start = [0.79+0.02*random.random(),0.79+0.02*random.random(),0.59+0.02*random.random(),0.79+0.02*random.random()]
-  save_state(start)
-  
-  bounds = optimize.Bounds([0.05,0.95], [0.05,0.95], [0.05,0.95], [0.05,0.95])
-  
-  #res=optimize.minimize(power, np.array(start), method="trust-constr",
-  #                   constraints=constraints, jac="2-point", bounds=bounds, callback = save_state_trust, tol = 0.001, 
-  #                   options={'disp': True ,'initial_tr_radius': 0.1, 'finite_diff_rel_step' : 0.05, 'maxiter' : 15, 'verbose': 3})
-  res=optimize.minimize(power, np.array(start), method="trust-constr",
-                     constraints=constraints, jac="2-point", bounds=bounds, callback = save_state_trust, tol = 1e-8, 
-                     options={'disp': True ,'initial_tr_radius': 1, 'finite_diff_rel_step' : 0.05, 'maxiter' : 15, 'verbose': 3})
                      
   print('Optimization done')
   
