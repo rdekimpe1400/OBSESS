@@ -81,6 +81,11 @@ def norm_param(x):
   params['SVM_feature_N_V'] = round(feat)
   params['SVM_feature_N_S'] = round(feat)
   
+  dump(params,out_dir+'params.sav')
+  f = open(fram_log_file, "a")
+  subprocess.run("python framework.py -l {}".format(out_dir), shell=True,stdout=f,stderr=subprocess.STDOUT)
+  f.close()
+  
 def power(x,train=True):
   log_exec("Power evaluation on point {}...\n".format(x))
   if len(x)<len(ref_x):
@@ -319,7 +324,7 @@ def run_optimization(update_output_dir):
   constraints.append({"fun": constraint, "type": "ineq", "jac": constraint_gradient, "args":([4])})
   constraints.append({"fun": constraint, "type": "ineq", "jac": constraint_gradient, "args":([5])})
   
-  start = [1.0,1.0] #,0.6,1.0,1.0]
+  start = [1.0,1.0,0.6,1.0,1.0]
   save_state(start)
   
   bounds = list()

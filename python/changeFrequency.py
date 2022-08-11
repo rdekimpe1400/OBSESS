@@ -58,10 +58,10 @@ def changeFrequency(freq):
   n = 32;
   log2n = 5;
   m = round(ratio*32);
-  while m%2==0:
-    m = m//2
-    n = n//2
-    log2n = log2n-1
+  #while m%2==0:
+  #  m = m//2
+  #  n = n//2
+  #  log2n = log2n-1
   
   f.write("\n");
   f.write("#define LOG2_N	{:d}	\n".format(log2n));
