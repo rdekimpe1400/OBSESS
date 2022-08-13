@@ -20,7 +20,7 @@ int16_t* upsample(int16_t sample, int* length)
     
     while(idx>=M){
       idx = idx-M;
-      upSampleBuf[*length] = sample - (((sample-prev_sample)*idx)>>LOG2_N);
+      upSampleBuf[*length] = sample - ((((int32_t)(sample-prev_sample))*idx)>>LOG2_N);
       *length = *length+1;
     }
     prev_sample = sample;

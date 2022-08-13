@@ -62,6 +62,11 @@ def norm_param(x):
   noise_IA = np.power(10.0,np.log10(IA_noise_range[1])-x[0]*(np.log10(IA_noise_range[1])-np.log10(IA_noise_range[0])))
   params["IA_thermal_noise"] = noise_IA/10
   
+  #FREQ
+  freq = FREQ_range[0] + x[3]*(FREQ_range[1]-FREQ_range[0])
+  params['ADC_Fs'] = freq
+  changeFrequency(freq)
+  
   #ADC
   res_ADC = ADC_resolution_range[0] + x[1]*(ADC_resolution_range[1]-ADC_resolution_range[0])
   VCO_freq = np.power(2.0,res_ADC)*params['ADC_Fs']
@@ -71,15 +76,15 @@ def norm_param(x):
   SVM_pruning = SVM_pruning_range[1] - x[2]*(SVM_pruning_range[1]-SVM_pruning_range[0])
   params['SVM_pruning_D'] = SVM_pruning
   
-  #FREQ
-  freq = FREQ_range[0] + x[3]*(FREQ_range[1]-FREQ_range[0])
-  params['ADC_Fs'] = freq
-  changeFrequency(freq)
-  
   #FEAT
   feat = FEAT_range[0] + x[4]*(FEAT_range[1]-FEAT_range[0])
   params['SVM_feature_N_V'] = round(feat)
   params['SVM_feature_N_S'] = round(feat)
+  
+  dump(params,out_dir+'params.sav')
+  f = open(fram_log_file, "a")
+  subprocess.run("python framework.py -l {}".format(out_dir), shell=True,stdout=f,stderr=subprocess.STDOUT)
+  f.close()
   
 def power(x,train=True):
   log_exec("Power evaluation on point {}...\n".format(x))
@@ -319,7 +324,7 @@ def run_optimization(update_output_dir):
   constraints.append({"fun": constraint, "type": "ineq", "jac": constraint_gradient, "args":([4])})
   constraints.append({"fun": constraint, "type": "ineq", "jac": constraint_gradient, "args":([5])})
   
-  start = [1.0,1.0] #,0.6,1.0,1.0]
+  start = [1.0,1.0,0.6,1.0,1.0]
   save_state(start)
   
   bounds = list()

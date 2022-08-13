@@ -190,6 +190,8 @@ def SVMtranslate(model_S,FS_S, model_V,FS_V,scaler, file_name = "svm_int.h"):
   
   # Compute quantization range
   feature_max_range = 20 # from dataset
+  #feature_max_range = np.maximum(np.max(np.abs(sv_S)),np.max(np.abs(sv_V)))
+  #print("Feature max {}".format(feature_max_range))  
   feature_scale = (2**(feature_data-1))/feature_max_range
   feature_shift = np.floor(np.log2(feature_scale)).astype(int) #Avoid feature saturation
   

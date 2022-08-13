@@ -83,8 +83,8 @@ int beat_get_gold_label(beat_t* beat){
 int beat_get_amplitude(beat_t* beat){
   int i=0;
   int min=0, max=0;
-  for(i=SIGNAL_SEGMENT_BEFORE-30;i<SIGNAL_SEGMENT_BEFORE+30;i++){
-    if (beat->signal[i]<max){
+  for(i=SIGNAL_SEGMENT_BEFORE-40;i<SIGNAL_SEGMENT_BEFORE+40;i++){
+    if (beat->signal[i]<min){
       min = beat->signal[i];
     }
     if (beat->signal[i]>max){
